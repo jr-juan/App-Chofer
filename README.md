@@ -1,35 +1,84 @@
-# Build Your First Ionic App: Photo Gallery (Ionic Angular and Capacitor)
+<div align="center">
 
-Get started with Ionic by building a photo gallery app that runs on iOS, Android, and the web - with just one codebase. This is the complete project referenced in the ["Your First App: Angular" guide](https://ionicframework.com/docs/angular/your-first-app). Follow along to create a complete CRUD (create-read-update-delete) experience.
+# 🚛 App Chofer
+### Sistema de Recolección de Basura
 
-Powered by [Ionic Angular](https://ionicframework.com/docs/angular/overview) (web app) and [Capacitor](https://capacitor.ionicframework.com) (native app runtime).
+![Ionic](https://img.shields.io/badge/Ionic-8-3880FF?style=for-the-badge&logo=ionic&logoColor=white)
+![Angular](https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Mapbox](https://img.shields.io/badge/Mapbox-000000?style=for-the-badge&logo=mapbox&logoColor=white)
 
-## How It Works
+*Aplicación móvil para conductores de camiones de recolección de basura que permite gestionar y transmitir en tiempo real los recorridos, complemento de la App Ciudadano.*
 
-After the user navigates to Tab 2 (Photos), they can tap/click on the camera button to open up the device's camera. After taking or selecting a photo, it's stored permanently into the device's filesystem. When the user reopens the app at a later time, the photo images are loaded from the filesystem and displayed again in the gallery. The user can tap on a photo to be presented with the option to remove the photo.
+</div>
 
-## Feature Overview
-* App framework: [Angular](https://angular.io)
-* UI components: [Ionic Framework](https://ionicframework.com/docs/components)
-  * Camera button: [Floating Action Button (FAB)](https://ionicframework.com/docs/api/fab)
-  * Photo Gallery display: [Grid](https://ionicframework.com/docs/api/grid)
-  * Delete Photo dialog: [Action Sheet](https://ionicframework.com/docs/api/action-sheet) 
-* Native runtime: [Capacitor](https://capacitor.ionicframework.com)
-  * Taking photos: [Camera API](https://capacitor.ionicframework.com/docs/apis/camera)
-  * Writing photo to the filesystem: [Filesystem API](https://capacitor.ionicframework.com/docs/apis/filesystem)
-  * Storing photo gallery metadata: [Preferences API](https://capacitor.ionicframework.com/docs/apis/preferences)
+---
 
-## Project Structure
-* Tab2 (Photos) (`src/app/tab2/`): Photo Gallery UI and basic logic.
-* PhotoService (`src/app/services/photo.service.ts`): Logic encapsulating Capacitor APIs, including Camera, Filesystem, and Preferences.
+## 🔗 Ecosistema del proyecto
 
-## How to Run
+Este repositorio forma parte de un sistema compuesto por tres aplicaciones que trabajan en conjunto:
 
-> Note: It's highly recommended to follow along with the [tutorial guide](https://ionicframework.com/docs/angular/your-first-app), which goes into more depth, but this is the fastest way to run the app. 
+| Aplicación | Repositorio | Descripción |
+|---|---|---|
+| 🌐 App Web (Angular) | [Proyecto-Angular](https://github.com/jr-juan/Proyecto-Angular.git) | Panel administrativo para gestión de rutas, vehículos y usuarios |
+| 📱 App Ciudadano | [App-Ciudadano](https://github.com/jr-juan/App-Ciudadano.git) | Visualización en tiempo real de rutas y camiones |
+| 🚛 **App Chofer** *(este repo)* | [App-Chofer](https://github.com/jr-juan/App-Chofer.git) | Transmisión GPS en tiempo real del conductor |
 
-0) Install Ionic if needed: `npm install -g @ionic/cli`.
-1) Clone this repository.
-2) In a terminal, change directory into the repo: `cd photo-gallery-capacitor-ng`.
-3) Install all packages: `npm install`.
-4) Run on the web: `ionic serve`.
-5) Run on iOS or Android: See [here](https://ionicframework.com/docs/building/running).
+---
+
+## ✨ Funcionalidades
+
+- 🔐 Autenticación segura con Firebase Auth
+- 🚛 Gestión del vehículo asignado al conductor
+- 📍 Transmisión de ubicación GPS en tiempo real
+- 🗺️ Visualización de la ruta asignada sobre mapa interactivo con Mapbox
+- 🔄 Integración con API REST del sistema administrativo
+
+---
+
+## 🛠️ Tecnologías
+
+| Tecnología | Uso | Documentación |
+|---|---|---|
+| Ionic 8 | Framework de desarrollo móvil | [ionicframework.com](https://ionicframework.com/docs) |
+| Angular | Framework web para la lógica | [angular.dev](https://angular.dev) |
+| Firebase Auth | Autenticación de usuarios | [firebase.google.com](https://firebase.google.com/docs/auth) |
+| Firebase Firestore | Base de datos en tiempo real | [firebase.google.com](https://firebase.google.com/docs/firestore) |
+| Mapbox | Mapas interactivos | [mapbox.com](https://docs.mapbox.com) |
+
+---
+
+## ⚙️ Instalación
+```bash
+# Clonar el repositorio
+git clone https://github.com/jr-juan/App-Chofer.git
+
+# Entrar al proyecto
+cd App-Chofer
+
+# Instalar dependencias
+npm install
+
+# Ejecutar en el navegador
+ionic serve
+```
+
+---
+
+## 👥 Equipo de desarrollo
+
+<div align="center">
+
+Proyecto universitario desarrollado como parte del curso de desarrollo móvil.
+
+**Sistema de Gestión de Rutas de Recolección de Basura**
+
+| Nombre | Rol |
+|---|---|
+| 👨‍💻 Juan Roman Cuero Ordoñez | Desarrollador |
+| 👩‍💻 Heily Alexandra Estupiñan Marulanda | Desarrolladora |
+| 👨‍💻 *¿nuevo miembro?* | Desarrollador |
+
+*Construido con ❤️ usando Ionic, Angular y Firebase*
+
+</div>
