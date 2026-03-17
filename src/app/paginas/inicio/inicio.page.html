@@ -1,0 +1,104 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Sistema JHJ S.A.S</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="mostrarModalCerrarSesion = true">
+        <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Encabezado -->
+  <div class="encabezado-chofer">
+    <h2>Mi Panel de Chofer</h2>
+    <p class="subtitulo">Bienvenido, {{ nombreChofer }}</p>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="estadisticas-chofer">
+    <div class="tarjeta-stat">
+      <div class="icono-stat">🚗</div>
+      <div class="info-stat">
+        <h3>{{ vehiculosAsignados.length }}</h3>
+        <p>Vehículos Asignados</p>
+      </div>
+    </div>
+
+    <div class="tarjeta-stat">
+      <div class="icono-stat">✅</div>
+      <div class="info-stat">
+        <h3>{{ vehiculosActivos }}</h3>
+        <p>Vehículos Activos</p>
+      </div>
+    </div>
+
+    <div class="tarjeta-stat tarjeta-disabled">
+      <div class="icono-stat">🗺️</div>
+      <div class="info-stat">
+        <h3>--</h3>
+        <p>Rutas Asignadas (Próximamente)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehículos -->
+  <div class="seccion-vehiculos">
+    <h3>Mis Vehículos Asignados</h3>
+
+    <!-- Cargando -->
+    <div *ngIf="cargando" class="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando vehículos...</p>
+    </div>
+
+    <!-- Lista -->
+    <div *ngIf="!cargando && vehiculosAsignados.length > 0" class="grid-vehiculos">
+      <div class="tarjeta-vehiculo" *ngFor="let vehiculo of vehiculosAsignados">
+        <div class="vehiculo-header">
+          <h4>{{ vehiculo.placa }}</h4>
+          <span class="badge" [class.activo]="vehiculo.activo" [class.inactivo]="!vehiculo.activo">
+            {{ vehiculo.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+        <div class="vehiculo-detalles">
+          <p><strong>Marca:</strong> {{ vehiculo.marca }}</p>
+          <p><strong>Modelo:</strong> {{ vehiculo.modelo }}</p>
+        </div>
+        <div class="vehiculo-acciones">
+          <button class="btn-detalle" disabled>Ver Rutas (Próximamente)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sin vehículos -->
+    <div *ngIf="!cargando && vehiculosAsignados.length === 0 && !mensajeError" class="sin-vehiculos">
+      <p>No tienes vehículos asignados</p>
+      <p class="texto-secundario">Contacta al administrador para que te asigne un vehículo.</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="mensajeError" class="mensaje-error">
+      {{ mensajeError }}
+    </div>
+  </div>
+
+</ion-content>
+
+<!-- Modal cerrar sesión -->
+<div class="modal-overlay" *ngIf="mostrarModalCerrarSesion" (click)="mostrarModalCerrarSesion = false">
+  <div class="modal-contenido" (click)="$event.stopPropagation()">
+    <h3>¿Cerrar sesión?</h3>
+    <p>¿Estás seguro de que quieres salir del sistema?</p>
+    <div class="modal-botones">
+      <button (click)="mostrarModalCerrarSesion = false" class="btn-cancelar">Cancelar</button>
+      <button (click)="cerrarSesion()" class="btn-confirmar">Cerrar sesión</button>
+    </div>
+  </div>
+</div>
