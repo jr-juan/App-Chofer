@@ -1,0 +1,22 @@
+<div class="login-page">
+  <div class="login-box">
+    <h2>Bienvenido Chofer</h2>
+    <form (ngSubmit)="iniciarSesion()">
+      <input
+        type="email"
+        placeholder="Correo electrónico"
+        name="email"
+        [(ngModel)]="email"
+        required
+      />
+      <input
+        type="password"
+        placeholder="Contraseña"
+        name="password"
+        [(ngModel)]="password"
+        required
+      />
+      <button type="submit" class="btn-login">Ingresar</button>
+    </form>
+  </div>
+</div>
