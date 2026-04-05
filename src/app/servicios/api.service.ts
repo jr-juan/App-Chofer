@@ -58,6 +58,17 @@ export class ApiService {
     );
   }
 
+  obtenerRutasDelChofer(choferId: string): Observable<RespuestaAPI<Ruta[]>> {
+  const rutasCollection = collection(firebaseDB, 'rutas');
+  const q = query(rutasCollection, where('choferAsignado', '==', choferId));
+
+  return from(getDocs(q)).pipe(
+    map((snapshot) => ({
+      data: snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Ruta)),
+    }))
+  );
+}
+
   crearRuta(ruta: CrearRuta): Observable<any> {
     const user = firebaseAuth.currentUser;
     if (!user) return throwError(() => new Error('Usuario no autenticado'));
@@ -197,4 +208,41 @@ export class ApiService {
   obtenerCallePorId(calleId: string): Observable<RespuestaAPI<Calle>> {
     return this.http.get<RespuestaAPI<Calle>>(`${this.urlBase}/calles/${calleId}`);
   }
+
+
+
+  // ==================== RECORRIDOS ====================
+
+iniciarRecorrido(choferId: string, vehiculoId: string, rutaId: string): Observable<string> {
+  const recorridosCollection = collection(firebaseDB, 'recorridos');
+  const recorrido = {
+    choferId,
+    vehiculoId,
+    rutaId,
+    estado: 'activo',
+    fechaInicio: new Date(),
+    fechaFin: null
+  };
+
+  return from(addDoc(recorridosCollection, recorrido)).pipe(
+    map((docRef) => docRef.id)
+  );
+}
+
+obtenerRecorridoActivo(choferId: string): Observable<any> {
+  const recorridosCollection = collection(firebaseDB, 'recorridos');
+  const q = query(
+    recorridosCollection,
+    where('choferId', '==', choferId),
+    where('estado', '==', 'activo')
+  );
+
+  return from(getDocs(q)).pipe(
+    map((snapshot) => {
+      if (snapshot.empty) return null;
+      const d = snapshot.docs[0];
+      return { id: d.id, ...d.data() };
+    })
+  );
+}
 }
