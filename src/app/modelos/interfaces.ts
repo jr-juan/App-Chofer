@@ -35,3 +35,13 @@ export interface RespuestaAPI<T> {
   message?: string;
   error?: string;
 }
+
+export interface Recorrido {
+  id?: string;
+  choferId: string;
+  vehiculoId: string;
+  rutaId: string;
+  estado: 'activo' | 'suspendido' | 'finalizado';
+  fechaInicio: any;
+  fechaFin: any;
+}
