@@ -10,7 +10,6 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-
   <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
@@ -39,11 +38,11 @@
       </div>
     </div>
 
-    <div class="tarjeta-stat tarjeta-disabled">
+    <div class="tarjeta-stat">
       <div class="icono-stat">🗺️</div>
       <div class="info-stat">
-        <h3>--</h3>
-        <p>Rutas Asignadas (Próximamente)</p>
+        <h3>{{ rutasAsignadas.length }}</h3>
+        <p>Rutas Asignadas</p>
       </div>
     </div>
   </div>
@@ -59,11 +58,18 @@
     </div>
 
     <!-- Lista -->
-    <div *ngIf="!cargando && vehiculosAsignados.length > 0" class="grid-vehiculos">
+    <div
+      *ngIf="!cargando && vehiculosAsignados.length > 0"
+      class="grid-vehiculos"
+    >
       <div class="tarjeta-vehiculo" *ngFor="let vehiculo of vehiculosAsignados">
         <div class="vehiculo-header">
           <h4>{{ vehiculo.placa }}</h4>
-          <span class="badge" [class.activo]="vehiculo.activo" [class.inactivo]="!vehiculo.activo">
+          <span
+            class="badge"
+            [class.activo]="vehiculo.activo"
+            [class.inactivo]="!vehiculo.activo"
+          >
             {{ vehiculo.activo ? 'Activo' : 'Inactivo' }}
           </span>
         </div>
@@ -72,33 +78,179 @@
           <p><strong>Modelo:</strong> {{ vehiculo.modelo }}</p>
         </div>
         <div class="vehiculo-acciones">
-          <button class="btn-detalle" disabled>Ver Rutas (Próximamente)</button>
+          <button class="btn-detalle" disabled>
+            Ver Rutas en Mapa (Próximamente)
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Sin vehículos -->
-    <div *ngIf="!cargando && vehiculosAsignados.length === 0 && !mensajeError" class="sin-vehiculos">
+    <div
+      *ngIf="!cargando && vehiculosAsignados.length === 0 && !mensajeError"
+      class="sin-vehiculos"
+    >
       <p>No tienes vehículos asignados</p>
-      <p class="texto-secundario">Contacta al administrador para que te asigne un vehículo.</p>
+      <p class="texto-secundario">
+        Contacta al administrador para que te asigne un vehículo.
+      </p>
     </div>
 
     <!-- Error -->
-    <div *ngIf="mensajeError" class="mensaje-error">
-      {{ mensajeError }}
-    </div>
+    <div *ngIf="mensajeError" class="mensaje-error">{{ mensajeError }}</div>
+
+    <!-- Éxito -->
+    <div *ngIf="mensajeExito" class="mensaje-exito">{{ mensajeExito }}</div>
   </div>
 
+  <!-- Rutas -->
+  <div class="seccion-vehiculos">
+    <h3>Mis Rutas Asignadas</h3>
+
+    <div *ngIf="cargando" class="loading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando rutas...</p>
+    </div>
+
+    <div *ngIf="!cargando && rutasAsignadas.length > 0" class="grid-vehiculos">
+      <div class="tarjeta-vehiculo" *ngFor="let ruta of rutasAsignadas">
+        <!-- HEILY: Este es tu F5, Puedes cambiar el diseño de esta tarjeta en inicio.page.css -->
+        <!-- La clase es .tarjeta-vehiculo, ya existe para vehículos, puedes crear .tarjeta-ruta si quieres otro estilo -->
+        <div class="vehiculo-header">
+          <h4>{{ ruta.nombre_ruta }}</h4>
+          <!-- HEILY: Este span es la bolita de color de la ruta, no tocar el [style.background] -->
+          <span
+            class="badge activo"
+            [style.background]="ruta.color_hex"
+            style="
+              width: 14px;
+              height: 14px;
+              border-radius: 50%;
+              display: inline-block;
+            "
+          >
+          </span>
+        </div>
+
+        <div class="vehiculo-acciones">
+          <!-- HEILY: Este es tu F6, Aqui dale estilo en CSS -->
+          <!-- La clase es .btn-detalle, puedes crear .btn-iniciar si quieres un estilo diferente -->
+          <button
+            class="btn-detalle"
+            [disabled]="!!recorridoActivo"
+            (click)="abrirModalRecorrido()"
+          >
+            {{ recorridoActivo ? 'Recorrido en curso' : 'Iniciar Recorrido' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      *ngIf="!cargando && rutasAsignadas.length === 0 && !mensajeError"
+      class="sin-vehiculos"
+    >
+      <p>No tienes rutas asignadas</p>
+      <p class="texto-secundario">
+        Contacta al administrador para que te asigne una ruta.
+      </p>
+    </div>
+  </div>
 </ion-content>
 
+<!-- Modal Iniciar Recorrido -->
+<div
+  class="modal-overlay"
+  *ngIf="mostrarModalRecorrido"
+  (click)="cerrarModalRecorrido()"
+>
+  <div class="modal-contenido" (click)="$event.stopPropagation()">
+    <h3>Iniciar Recorrido</h3>
+    <p>Selecciona el vehículo y la ruta para comenzar</p>
+
+    <!-- Selección de vehículo -->
+    <div class="modal-seccion">
+      <h4>Vehículo</h4>
+      <div
+        *ngFor="let v of vehiculosAsignados"
+        class="item-seleccionable"
+        [class.seleccionado]="vehiculoSeleccionado?.id === v.id"
+        [class.item-deshabilitado]="!v.activo"
+        (click)="v.activo ? seleccionarVehiculo(v) : null"
+      >
+        <strong>{{ v.placa }}</strong>
+        <span>{{ v.marca }} {{ v.modelo }}</span>
+        <span
+          class="badge"
+          [class.activo]="v.activo"
+          [class.inactivo]="!v.activo"
+        >
+          {{ v.activo ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <p *ngIf="vehiculosAsignados.length === 0" class="sin-vehiculos">
+        Sin vehículos asignados
+      </p>
+    </div>
+
+    <!-- Selección de ruta -->
+    <div class="modal-seccion">
+      <h4>Ruta</h4>
+      <div
+        *ngFor="let r of rutasAsignadas"
+        class="item-seleccionable"
+        [class.seleccionado]="rutaSeleccionada?.id === r.id"
+        (click)="seleccionarRuta(r)"
+      >
+        <span
+          style="
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+          "
+          [style.background]="r.color_hex"
+        >
+        </span>
+        <strong>{{ r.nombre_ruta }}</strong>
+      </div>
+      <p *ngIf="rutasAsignadas.length === 0" class="sin-vehiculos">
+        Sin rutas asignadas
+      </p>
+    </div>
+
+    <div class="modal-botones">
+      <button (click)="cerrarModalRecorrido()" class="btn-cancelar">
+        Cancelar
+      </button>
+      <button
+        (click)="confirmarInicioRecorrido()"
+        class="btn-confirmar"
+        [disabled]="!vehiculoSeleccionado || !rutaSeleccionada || iniciandoRecorrido"
+      >
+        {{ iniciandoRecorrido ? 'Iniciando...' : 'Confirmar' }}
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal cerrar sesión -->
-<div class="modal-overlay" *ngIf="mostrarModalCerrarSesion" (click)="mostrarModalCerrarSesion = false">
+<div
+  class="modal-overlay"
+  *ngIf="mostrarModalCerrarSesion"
+  (click)="mostrarModalCerrarSesion = false"
+>
   <div class="modal-contenido" (click)="$event.stopPropagation()">
     <h3>¿Cerrar sesión?</h3>
     <p>¿Estás seguro de que quieres salir del sistema?</p>
     <div class="modal-botones">
-      <button (click)="mostrarModalCerrarSesion = false" class="btn-cancelar">Cancelar</button>
-      <button (click)="cerrarSesion()" class="btn-confirmar">Cerrar sesión</button>
+      <button (click)="mostrarModalCerrarSesion = false" class="btn-cancelar">
+        Cancelar
+      </button>
+      <button (click)="cerrarSesion()" class="btn-confirmar">
+        Cerrar sesión
+      </button>
     </div>
   </div>
 </div>
