@@ -255,3 +255,80 @@ ion-content {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* ── Modal Recorrido ── */
+.modal-contenido {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-seccion {
+  text-align: left;
+  margin-bottom: 16px;
+}
+.modal-seccion h4 {
+  color: #2c3e50;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.item-seleccionable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8f9fa;
+}
+.item-seleccionable:active {
+  background: #eaf4fb;
+  border-color: #3498db;
+}
+.item-seleccionable.seleccionado {
+  border-color: #3498db;
+  background: #eaf4fb;
+}
+.item-seleccionable strong {
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+.item-seleccionable span {
+  color: #7f8c8d;
+  font-size: 0.82rem;
+}
+
+.btn-confirmar:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.mensaje-exito {
+  background: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.item-deshabilitado {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #dee2e6 !important;
+  background: #f8f9fa !important;
+}
