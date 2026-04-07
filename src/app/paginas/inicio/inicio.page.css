@@ -332,3 +332,42 @@ ion-content {
   border-color: #dee2e6 !important;
   background: #f8f9fa !important;
 }
+
+.tarjeta-vehiculo {
+.tarjeta-vehiculo {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.tarjeta-vehiculo.seleccionada {
+  border: 2px solid #3498db;
+  background: #eaf4fb;
+  transform: scale(1.02);
+}
+
+}
+
+.btn-detalle {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #3498db;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+
+.btn-detalle:hover {
+  background: #2980b9;
+}
+
+/* Deshabilitado */
+.btn-detalle:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  opacity: 0.7;
+}

@@ -114,11 +114,10 @@
 
     <div *ngIf="!cargando && rutasAsignadas.length > 0" class="grid-vehiculos">
       <div class="tarjeta-vehiculo" *ngFor="let ruta of rutasAsignadas">
-        <!-- HEILY: Este es tu F5, Puedes cambiar el diseño de esta tarjeta en inicio.page.css -->
-        <!-- La clase es .tarjeta-vehiculo, ya existe para vehículos, puedes crear .tarjeta-ruta si quieres otro estilo -->
+        
         <div class="vehiculo-header">
           <h4>{{ ruta.nombre_ruta }}</h4>
-          <!-- HEILY: Este span es la bolita de color de la ruta, no tocar el [style.background] -->
+          
           <span
             class="badge activo"
             [style.background]="ruta.color_hex"
@@ -133,8 +132,7 @@
         </div>
 
         <div class="vehiculo-acciones">
-          <!-- HEILY: Este es tu F6, Aqui dale estilo en CSS -->
-          <!-- La clase es .btn-detalle, puedes crear .btn-iniciar si quieres un estilo diferente -->
+          
           <button
             class="btn-detalle"
             [disabled]="!!recorridoActivo"
