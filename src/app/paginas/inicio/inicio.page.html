@@ -29,7 +29,6 @@
         <p>Vehículos Asignados</p>
       </div>
     </div>
-
     <div class="tarjeta-stat">
       <div class="icono-stat">✅</div>
       <div class="info-stat">
@@ -37,7 +36,6 @@
         <p>Vehículos Activos</p>
       </div>
     </div>
-
     <div class="tarjeta-stat">
       <div class="icono-stat">🗺️</div>
       <div class="info-stat">
@@ -47,17 +45,54 @@
     </div>
   </div>
 
+  <!-- Estado GPS — siempre visible -->
+<div class="seccion-gps">
+  <div class="gps-card" [class.gps-activo]="gpsActivo" [class.gps-inactivo]="!gpsActivo">
+    <div class="gps-header">
+      <span class="gps-dot"></span>
+      <strong>{{ gpsActivo ? 'GPS Activo' : 'GPS Inactivo' }}</strong>
+      <ion-button *ngIf="gpsActivo" color="danger" size="small" fill="outline" (click)="detenerGPS()">
+        Detener GPS
+      </ion-button>
+    </div>
+    <div *ngIf="gpsActivo && posicionActual" class="gps-coords">
+      <span>📍 Lat: {{ posicionActual.latitud | number:'1.5-5' }}</span>
+      <span>Lng: {{ posicionActual.longitud | number:'1.5-5' }}</span>
+      <span class="gps-precision">Precisión: {{ posicionActual.precision | number:'1.0-0' }}m</span>
+    </div>
+    <p *ngIf="gpsActivo && !posicionActual" class="gps-buscando">Buscando señal GPS...</p>
+    <div *ngIf="!gpsActivo" class="gps-aviso">
+      <ion-icon name="warning-outline" color="warning"></ion-icon>
+      Activa la ubicación del celular para poder iniciar recorridos.
+    </div>
+  </div>
+</div>
+
+<!-- Recorrido activo -->
+<div class="seccion-gps" *ngIf="recorridoActivo">
+  <div class="recorrido-card">
+    <div class="gps-header">
+      <span class="recorrido-dot"></span>
+      <strong>Recorrido en curso</strong>
+    </div>
+    <div class="gps-coords">
+      <span>🚗 {{ recorridoActivo.vehiculo?.placa || recorridoActivo.vehiculoId }}</span>
+      <span>🗺️ {{ recorridoActivo.ruta?.nombre_ruta || recorridoActivo.rutaId }}</span>
+      <span>🕐 {{ recorridoActivo.fechaInicio | date:'shortTime' }}</span>
+    </div>
+    <button class="btn-detener" (click)="detenerGPS()">
+      ⏹ Detener Recorrido (Próximamente)
+    </button>
+  </div>
+</div>
+
   <!-- Vehículos -->
   <div class="seccion-vehiculos">
     <h3>Mis Vehículos Asignados</h3>
-
-    <!-- Cargando -->
     <div *ngIf="cargando" class="loading">
       <ion-spinner name="crescent"></ion-spinner>
       <p>Cargando vehículos...</p>
     </div>
-
-    <!-- Lista -->
     <div
       *ngIf="!cargando && vehiculosAsignados.length > 0"
       class="grid-vehiculos"
@@ -84,10 +119,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Sin vehículos -->
     <div
-      *ngIf="!cargando && vehiculosAsignados.length === 0 && !mensajeError"
+      *ngIf="!cargando && vehiculosAsignados.length === 0"
       class="sin-vehiculos"
     >
       <p>No tienes vehículos asignados</p>
@@ -95,29 +128,19 @@
         Contacta al administrador para que te asigne un vehículo.
       </p>
     </div>
-
-    <!-- Error -->
-    <div *ngIf="mensajeError" class="mensaje-error">{{ mensajeError }}</div>
-
-    <!-- Éxito -->
-    <div *ngIf="mensajeExito" class="mensaje-exito">{{ mensajeExito }}</div>
   </div>
 
   <!-- Rutas -->
   <div class="seccion-vehiculos">
     <h3>Mis Rutas Asignadas</h3>
-
     <div *ngIf="cargando" class="loading">
       <ion-spinner name="crescent"></ion-spinner>
       <p>Cargando rutas...</p>
     </div>
-
     <div *ngIf="!cargando && rutasAsignadas.length > 0" class="grid-vehiculos">
       <div class="tarjeta-vehiculo" *ngFor="let ruta of rutasAsignadas">
-        
         <div class="vehiculo-header">
           <h4>{{ ruta.nombre_ruta }}</h4>
-          
           <span
             class="badge activo"
             [style.background]="ruta.color_hex"
@@ -130,9 +153,7 @@
           >
           </span>
         </div>
-
         <div class="vehiculo-acciones">
-          
           <button
             class="btn-detalle"
             [disabled]="!!recorridoActivo"
@@ -143,11 +164,7 @@
         </div>
       </div>
     </div>
-
-    <div
-      *ngIf="!cargando && rutasAsignadas.length === 0 && !mensajeError"
-      class="sin-vehiculos"
-    >
+    <div *ngIf="!cargando && rutasAsignadas.length === 0" class="sin-vehiculos">
       <p>No tienes rutas asignadas</p>
       <p class="texto-secundario">
         Contacta al administrador para que te asigne una ruta.
@@ -155,6 +172,30 @@
     </div>
   </div>
 </ion-content>
+
+<!-- Modal Notificación -->
+<div
+  class="modal-overlay"
+  *ngIf="mostrarNotificacion"
+  (click)="cerrarNotificacion()"
+>
+  <div
+    class="modal-notificacion"
+    [class.notif-exito]="notificacionTipo === 'exito'"
+    [class.notif-error]="notificacionTipo === 'error'"
+    [class.notif-info]="notificacionTipo === 'info'"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="notif-icono">
+      {{ notificacionTipo === 'exito' ? 'OK' : notificacionTipo === 'error' ?
+      'Error' : 'Informacion' }}
+    </div>
+    <p class="notif-mensaje">{{ notificacionMensaje }}</p>
+    <button class="btn-confirmar" (click)="cerrarNotificacion()">
+      Aceptar
+    </button>
+  </div>
+</div>
 
 <!-- Modal Iniciar Recorrido -->
 <div
@@ -166,7 +207,6 @@
     <h3>Iniciar Recorrido</h3>
     <p>Selecciona el vehículo y la ruta para comenzar</p>
 
-    <!-- Selección de vehículo -->
     <div class="modal-seccion">
       <h4>Vehículo</h4>
       <div
@@ -191,7 +231,6 @@
       </p>
     </div>
 
-    <!-- Selección de ruta -->
     <div class="modal-seccion">
       <h4>Ruta</h4>
       <div
@@ -209,8 +248,7 @@
             margin-right: 8px;
           "
           [style.background]="r.color_hex"
-        >
-        </span>
+        ></span>
         <strong>{{ r.nombre_ruta }}</strong>
       </div>
       <p *ngIf="rutasAsignadas.length === 0" class="sin-vehiculos">
@@ -233,7 +271,7 @@
   </div>
 </div>
 
-<!-- Modal cerrar sesión -->
+<!-- Modal Cerrar Sesión -->
 <div
   class="modal-overlay"
   *ngIf="mostrarModalCerrarSesion"
