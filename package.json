@@ -23,6 +23,7 @@
     "@capacitor/camera": "^4.0.0",
     "@capacitor/core": "^4.0.0",
     "@capacitor/filesystem": "^4.0.0",
+    "@capacitor/geolocation": "^4.1.0",
     "@capacitor/ios": "^4.0.0",
     "@capacitor/preferences": "^4.0.1",
     "@capacitor/splash-screen": "^4.0.0",
