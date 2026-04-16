@@ -45,3 +45,10 @@ export interface Recorrido {
   fechaInicio: any;
   fechaFin: any;
 }
+
+export interface PosicionGPS {
+  latitud: number;
+  longitud: number;
+  precision: number;
+  timestamp: number;
+}
