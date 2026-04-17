@@ -58,7 +58,7 @@ export class GpsService {
                 latitud: position.coords.latitude,
                 longitud: position.coords.longitude,
                 precision: position.coords.accuracy,
-                timestamp: position.timestamp,
+                fechaRegistro: new Date(),
               };
 
               if (this.debeEnviar(posicion)) {
@@ -100,7 +100,7 @@ export class GpsService {
         latitud: position.coords.latitude,
         longitud: position.coords.longitude,
         precision: position.coords.accuracy,
-        timestamp: position.timestamp,
+        fechaRegistro: new Date(),
       };
     } catch (err) {
       console.error("Error obteniendo posición:", err);
