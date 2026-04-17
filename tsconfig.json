@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "ignoreDeprecations": "6.0", 
     "skipLibCheck": true, 
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
