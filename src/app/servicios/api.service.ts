@@ -15,7 +15,7 @@ import {
   deleteDoc,
   getDoc,
 } from 'firebase/firestore';
-import { Ruta, CrearRuta, Vehiculo, Calle, RespuestaAPI } from '../modelos/interfaces';
+import { Ruta, CrearRuta, Vehiculo, Calle, RespuestaAPI, PosicionGPS } from '../modelos/interfaces';
 
 @Injectable({
   providedIn: 'root',
@@ -245,4 +245,25 @@ obtenerRecorridoActivo(choferId: string): Observable<any> {
     })
   );
 }
+
+guardarPosicionGPS(recorridoId: string, posicion: PosicionGPS): Observable<void> {
+  const posicionesCollection = collection(firebaseDB, 'posiciones');
+  const datos = {
+    recorridoId,
+    latitud: posicion.latitud,
+    longitud: posicion.longitud,
+    precision: posicion.precision,
+    fechaRegistro: new Date()
+  };
+  return from(addDoc(posicionesCollection, datos)).pipe(map(() => void 0));
+}
+
+finalizarRecorrido(recorridoId: string): Observable<void> {
+  const docRef = doc(firebaseDB, 'recorridos', recorridoId);
+  return from(updateDoc(docRef, {
+    estado: 'finalizado',
+    fechaFin: new Date()
+  })).pipe(map(() => void 0));
+}
+
 }
