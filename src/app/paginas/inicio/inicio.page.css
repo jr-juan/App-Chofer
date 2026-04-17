@@ -138,7 +138,7 @@ ion-content {
   font-weight: 500;
 }
 
-/* ── Botón detener recorrido ── */
+/* ── Botón detener recorrido ── */ /* HEILY: CORTA Y PEGA ESTA CLASE HASTA LA LINEA 158 - RF26*/
 .btn-detener {
   width: 100%;
   margin-top: 12px;
@@ -353,4 +353,29 @@ ion-content {
   color: #333;
   margin-bottom: 20px;
   line-height: 1.5;
+}
+
+/* Colores específicos para íconos */
+
+.icono-stat-ion {
+  font-size: 2rem;
+  color: #3498db;
+}
+.color-green {
+  color: #43a047;
+}
+.notif-icono ion-icon {
+  font-size: 48px;
+}
+.gps-coords ion-icon {
+  vertical-align: middle;
+  margin-right: 4px;
+  font-size: 15px;
+}
+.btn-detener ion-icon,
+.btn-confirmar ion-icon,
+.btn-detalle ion-icon {
+  vertical-align: middle;
+  margin-right: 6px;
+  font-size: 16px;
 }
