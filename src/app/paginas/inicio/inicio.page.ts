@@ -11,6 +11,8 @@ import { forkJoin, Subscription } from "rxjs";
   styleUrls: ["./inicio.page.css"],
 })
 export class InicioPage implements OnInit, OnDestroy {
+
+  // ── Propiedades ──
   vehiculosAsignados: Vehiculo[] = [];
   vehiculosActivos = 0;
   rutasAsignadas: Ruta[] = [];
@@ -29,12 +31,10 @@ export class InicioPage implements OnInit, OnDestroy {
   private gpsSub: Subscription | null = null;
   private gpsActivoSub: Subscription | null = null;
 
-  // Notificaciones modal
+  // Notificaciones
   mostrarNotificacion = false;
   notificacionTipo: "exito" | "error" | "info" = "info";
   notificacionMensaje = "";
-
-  pendienteAbrirAjustes = false;
 
   constructor(
     private apiService: ApiService,
@@ -43,20 +43,29 @@ export class InicioPage implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
   ) {}
 
+  // ── RF3 — Ciclo de vida ──
+
   ngOnInit() {
     this.nombreChofer = this.authService.currentUser?.displayName || "Chofer";
     this.cargarDatos();
 
+    // RF8/RF9 — Suscripción al estado del GPS
     this.gpsActivoSub = this.gpsService.gpsActivo$.subscribe((activo) => {
-      console.log("Estado GPS actualizado:", activo);
       this.gpsActivo = activo;
       this.cdr.detectChanges();
     });
 
+    // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
+    // Parte JAZMIN: este método recibe cada posición y la envía a la colección 'posiciones' en Firestore
     this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
-      console.log("Posición GPS actualizada:", pos);
       this.posicionActual = pos;
       this.cdr.detectChanges();
+
+      if (pos && this.recorridoActivo?.id) {
+        this.apiService.guardarPosicionGPS(this.recorridoActivo.id, pos).subscribe({
+          error: (err) => console.error("Error guardando posición:", err),
+        });
+      }
     });
   }
 
@@ -65,6 +74,8 @@ export class InicioPage implements OnInit, OnDestroy {
     this.gpsActivoSub?.unsubscribe();
   }
 
+  // ── Notificaciones ──
+
   mostrarAlerta(mensaje: string, tipo: "exito" | "error" | "info" = "info") {
     this.notificacionMensaje = mensaje;
     this.notificacionTipo = tipo;
@@ -72,8 +83,10 @@ export class InicioPage implements OnInit, OnDestroy {
   }
 
   cerrarNotificacion() {
-  this.mostrarNotificacion = false;
-}
+    this.mostrarNotificacion = false;
+  }
+
+  // ── RF4/RF5 — Carga de datos del chofer ──
 
   cargarDatos() {
     this.cargando = true;
@@ -92,11 +105,16 @@ export class InicioPage implements OnInit, OnDestroy {
     }).subscribe({
       next: ({ vehiculos, rutas, recorrido }) => {
         this.vehiculosAsignados = vehiculos.data || [];
-        this.vehiculosActivos = this.vehiculosAsignados.filter(
-          (v) => v.activo,
-        ).length;
+        this.vehiculosActivos = this.vehiculosAsignados.filter((v) => v.activo).length;
         this.rutasAsignadas = rutas.data || [];
         this.recorridoActivo = recorrido;
+
+        // Enriquecer recorrido activo con objetos completos para mostrar nombres
+        if (recorrido) {
+          this.recorridoActivo.vehiculo = this.vehiculosAsignados.find((v) => v.id === recorrido.vehiculoId) || null;
+          this.recorridoActivo.ruta = this.rutasAsignadas.find((r) => r.id === recorrido.rutaId) || null;
+        }
+
         this.cargando = false;
       },
       error: (err) => {
@@ -107,12 +125,11 @@ export class InicioPage implements OnInit, OnDestroy {
     });
   }
 
+  // ── RF6 — Modal de recorrido ──
+
   abrirModalRecorrido() {
     if (this.recorridoActivo) {
-      this.mostrarAlerta(
-        "Ya tienes un recorrido activo. Debes finalizarlo antes de iniciar uno nuevo.",
-        "info",
-      );
+      this.mostrarAlerta("Ya tienes un recorrido activo. Debes finalizarlo antes de iniciar uno nuevo.", "info");
       return;
     }
     this.vehiculoSeleccionado = null;
@@ -134,81 +151,96 @@ export class InicioPage implements OnInit, OnDestroy {
     this.rutaSeleccionada = ruta;
   }
 
+  // ── RF6/RF7/RF8/RF9 — Confirmar inicio de recorrido + activar GPS ──
+
   async confirmarInicioRecorrido() {
     if (!this.vehiculoSeleccionado || !this.rutaSeleccionada) {
       this.mostrarAlerta("Debes seleccionar un vehículo y una ruta.", "error");
       return;
     }
-    // Verificar permisos GPS antes de iniciar recorrido
-    const { otorgado, denegadoPermanente } =
-      await this.gpsService.verificarPermisos();
+
+    // RF8/RF9 — Verificar permisos GPS antes de iniciar
+    const { otorgado, denegadoPermanente } = await this.gpsService.verificarPermisos();
 
     if (!otorgado) {
       this.cerrarModalRecorrido();
-
       if (denegadoPermanente) {
         this.mostrarAlerta(
-          "📍 Permiso de ubicación bloqueado. Ve a Ajustes del celular → Aplicaciones → EcoRuta → Permisos → Ubicación y actívalo.",
+          "Permiso de ubicación bloqueado. Ve a Ajustes del celular → Aplicaciones → EcoRuta → Permisos → Ubicación y actívalo.",
           "error",
         );
       } else {
         this.mostrarAlerta(
-          "📍 La app necesita acceso a tu ubicación para registrar el recorrido. Por favor actívalo en los ajustes.",
+          "La app necesita acceso a tu ubicación para registrar el recorrido. Por favor actívalo en los ajustes.",
           "info",
         );
       }
       return;
     }
 
-    // Continúa normal si tiene permisos
     const choferId = this.authService.currentUser?.uid;
     if (!choferId) return;
 
     this.iniciandoRecorrido = true;
 
-    this.apiService
-      .iniciarRecorrido(
-        choferId,
-        this.vehiculoSeleccionado.id!,
-        this.rutaSeleccionada.id!,
-      )
-      .subscribe({
-        next: async (idRecorrido) => {
-          this.recorridoActivo = {
-            id: idRecorrido,
-            choferId,
-            vehiculoId: this.vehiculoSeleccionado!.id,
-            rutaId: this.rutaSeleccionada!.id,
-            vehiculo: this.vehiculoSeleccionado,
-            ruta: this.rutaSeleccionada,
-            estado: "activo",
-            fechaInicio: new Date(),
-          };
-          this.iniciandoRecorrido = false;
-          this.cerrarModalRecorrido();
+    this.apiService.iniciarRecorrido(choferId, this.vehiculoSeleccionado.id!, this.rutaSeleccionada.id!).subscribe({
+      next: async (idRecorrido) => {
+        this.recorridoActivo = {
+          id: idRecorrido,
+          choferId,
+          vehiculoId: this.vehiculoSeleccionado!.id,
+          rutaId: this.rutaSeleccionada!.id,
+          vehiculo: this.vehiculoSeleccionado,
+          ruta: this.rutaSeleccionada,
+          estado: "activo",
+          fechaInicio: new Date(),
+        };
+        this.iniciandoRecorrido = false;
+        this.cerrarModalRecorrido();
 
-          const gpsIniciado = await this.gpsService.iniciarSeguimiento();
-          if (gpsIniciado) {
-            this.mostrarAlerta("Recorrido iniciado — GPS activo", "exito");
-          } else {
-            this.mostrarAlerta(
-              "No se pudo activar el GPS. Verifica los permisos.",
-              "error",
-            );
-          }
-        },
-        error: (err) => {
-          console.error("Error iniciando recorrido:", err);
-          this.mostrarAlerta("Error al iniciar el recorrido.", "error");
-          this.iniciandoRecorrido = false;
-        },
-      });
+        // RF8/RF9 — Iniciar seguimiento GPS
+        const gpsIniciado = await this.gpsService.iniciarSeguimiento();
+        if (gpsIniciado) {
+          this.mostrarAlerta("Recorrido iniciado — GPS activo", "exito");
+        } else {
+          this.mostrarAlerta("No se pudo activar el GPS. Verifica los permisos.", "error");
+        }
+      },
+      error: (err) => {
+        console.error("Error iniciando recorrido:", err);
+        this.mostrarAlerta("Error al iniciar el recorrido.", "error");
+        this.iniciandoRecorrido = false;
+      },
+    });
   }
+
+  // ── RF8/RF9 — Detener solo el GPS  ──
 
   async detenerGPS() {
     await this.gpsService.detenerSeguimiento();
-    this.mostrarAlerta("GPS detenido correctamente.", "info");
+    this.mostrarAlerta("GPS detenido. El recorrido sigue activo.", "info");
   }
+
+  // ── RF26 — Finalizar recorrido manualmente + detener GPS ──
+  // Parte HEILY: este botón aparece en la card de recorrido activo en el HTML
+
+  async finalizarRecorrido() {
+    if (!this.recorridoActivo?.id) return;
+
+    this.apiService.finalizarRecorrido(this.recorridoActivo.id).subscribe({
+      next: async () => {
+        await this.gpsService.detenerSeguimiento();
+        this.recorridoActivo = null;
+        this.mostrarAlerta("Recorrido finalizado correctamente", "exito");
+      },
+      error: (err) => {
+        console.error("Error finalizando recorrido:", err);
+        this.mostrarAlerta("Error al finalizar el recorrido.", "error");
+      },
+    });
+  }
+
+  // ── Sesión ──
 
   cerrarSesion() {
     this.mostrarModalCerrarSesion = false;
