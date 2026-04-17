@@ -50,5 +50,5 @@ export interface PosicionGPS {
   latitud: number;
   longitud: number;
   precision: number;
-  timestamp: number;
+  fechaRegistro?: Date;
 }
