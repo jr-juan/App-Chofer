@@ -23,21 +23,21 @@
   <!-- Estadísticas -->
   <div class="estadisticas-chofer">
     <div class="tarjeta-stat">
-      <div class="icono-stat">🚗</div>
+      <ion-icon name="car" class="icono-stat-ion"></ion-icon>
       <div class="info-stat">
         <h3>{{ vehiculosAsignados.length }}</h3>
         <p>Vehículos Asignados</p>
       </div>
     </div>
     <div class="tarjeta-stat">
-      <div class="icono-stat">✅</div>
+      <ion-icon name="checkmark-circle" class="icono-stat-ion color-green"></ion-icon>
       <div class="info-stat">
         <h3>{{ vehiculosActivos }}</h3>
         <p>Vehículos Activos</p>
       </div>
     </div>
     <div class="tarjeta-stat">
-      <div class="icono-stat">🗺️</div>
+      <ion-icon name="map" class="icono-stat-ion"></ion-icon>
       <div class="info-stat">
         <h3>{{ rutasAsignadas.length }}</h3>
         <p>Rutas Asignadas</p>
@@ -45,46 +45,46 @@
     </div>
   </div>
 
-  <!-- Estado GPS — siempre visible -->
-<div class="seccion-gps">
-  <div class="gps-card" [class.gps-activo]="gpsActivo" [class.gps-inactivo]="!gpsActivo">
-    <div class="gps-header">
-      <span class="gps-dot"></span>
-      <strong>{{ gpsActivo ? 'GPS Activo' : 'GPS Inactivo' }}</strong>
-      <ion-button *ngIf="gpsActivo" color="danger" size="small" fill="outline" (click)="detenerGPS()">
-        Detener GPS
-      </ion-button>
-    </div>
-    <div *ngIf="gpsActivo && posicionActual" class="gps-coords">
-      <span>📍 Lat: {{ posicionActual.latitud | number:'1.5-5' }}</span>
-      <span>Lng: {{ posicionActual.longitud | number:'1.5-5' }}</span>
-      <span class="gps-precision">Precisión: {{ posicionActual.precision | number:'1.0-0' }}m</span>
-    </div>
-    <p *ngIf="gpsActivo && !posicionActual" class="gps-buscando">Buscando señal GPS...</p>
-    <div *ngIf="!gpsActivo" class="gps-aviso">
-      <ion-icon name="warning-outline" color="warning"></ion-icon>
-      Activa la ubicación del celular para poder iniciar recorridos.
+  <!-- Estado GPS -->
+  <div class="seccion-gps">
+    <div class="gps-card" [class.gps-activo]="gpsActivo" [class.gps-inactivo]="!gpsActivo">
+      <div class="gps-header">
+        <span class="gps-dot"></span>
+        <strong>{{ gpsActivo ? 'GPS Activo' : 'GPS Inactivo' }}</strong>
+        <ion-button *ngIf="gpsActivo" color="danger" size="small" fill="outline" (click)="detenerGPS()">
+          Detener GPS
+        </ion-button>
+      </div>
+      <div *ngIf="gpsActivo && posicionActual" class="gps-coords">
+        <span><ion-icon name="location"></ion-icon> Lat: {{ posicionActual.latitud | number:'1.5-5' }}</span>
+        <span>Lng: {{ posicionActual.longitud | number:'1.5-5' }}</span>
+        <span class="gps-precision"><ion-icon name="radio"></ion-icon> Precisión: {{ posicionActual.precision | number:'1.0-0' }}m</span>
+      </div>
+      <p *ngIf="gpsActivo && !posicionActual" class="gps-buscando">Buscando señal GPS...</p>
+      <div *ngIf="!gpsActivo" class="gps-aviso">
+        <ion-icon name="warning"></ion-icon>
+        Activa la ubicación del celular para poder iniciar recorridos.
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Recorrido activo -->
-<div class="seccion-gps" *ngIf="recorridoActivo">
-  <div class="recorrido-card">
-    <div class="gps-header">
-      <span class="recorrido-dot"></span>
-      <strong>Recorrido en curso</strong>
+  <!-- Recorrido activo -->
+  <div class="seccion-gps" *ngIf="recorridoActivo">
+    <div class="recorrido-card">
+      <div class="gps-header">
+        <span class="recorrido-dot"></span>
+        <strong>Recorrido en curso</strong>
+      </div>
+      <div class="gps-coords">
+        <span><ion-icon name="car"></ion-icon> {{ recorridoActivo.vehiculo?.placa || recorridoActivo.vehiculoId }}</span>
+        <span><ion-icon name="map"></ion-icon> {{ recorridoActivo.ruta?.nombre_ruta || recorridoActivo.rutaId }}</span>
+        <span><ion-icon name="time"></ion-icon> {{ recorridoActivo.fechaInicio | date:'shortTime' }}</span>
+      </div> <!-- Parte Heily: Corta y pega el button es tu RF26 -->
+      <button class="btn-detener" (click)="finalizarRecorrido()">
+        <ion-icon name="stop-circle"></ion-icon> Finalizar Recorrido
+      </button>
     </div>
-    <div class="gps-coords">
-      <span>🚗 {{ recorridoActivo.vehiculo?.placa || recorridoActivo.vehiculoId }}</span>
-      <span>🗺️ {{ recorridoActivo.ruta?.nombre_ruta || recorridoActivo.rutaId }}</span>
-      <span>🕐 {{ recorridoActivo.fechaInicio | date:'shortTime' }}</span>
-    </div>
-    <button class="btn-detener" (click)="detenerGPS()">
-      ⏹ Detener Recorrido (Próximamente)
-    </button>
   </div>
-</div>
 
   <!-- Vehículos -->
   <div class="seccion-vehiculos">
@@ -93,18 +93,11 @@
       <ion-spinner name="crescent"></ion-spinner>
       <p>Cargando vehículos...</p>
     </div>
-    <div
-      *ngIf="!cargando && vehiculosAsignados.length > 0"
-      class="grid-vehiculos"
-    >
+    <div *ngIf="!cargando && vehiculosAsignados.length > 0" class="grid-vehiculos">
       <div class="tarjeta-vehiculo" *ngFor="let vehiculo of vehiculosAsignados">
         <div class="vehiculo-header">
           <h4>{{ vehiculo.placa }}</h4>
-          <span
-            class="badge"
-            [class.activo]="vehiculo.activo"
-            [class.inactivo]="!vehiculo.activo"
-          >
+          <span class="badge" [class.activo]="vehiculo.activo" [class.inactivo]="!vehiculo.activo">
             {{ vehiculo.activo ? 'Activo' : 'Inactivo' }}
           </span>
         </div>
@@ -114,19 +107,15 @@
         </div>
         <div class="vehiculo-acciones">
           <button class="btn-detalle" disabled>
-            Ver Rutas en Mapa (Próximamente)
+            <ion-icon name="map-outline"></ion-icon> Ver Rutas en Mapa (Próximamente)
           </button>
         </div>
       </div>
     </div>
-    <div
-      *ngIf="!cargando && vehiculosAsignados.length === 0"
-      class="sin-vehiculos"
-    >
+    <div *ngIf="!cargando && vehiculosAsignados.length === 0" class="sin-vehiculos">
+      <ion-icon name="car-outline" style="font-size: 40px; color: #bdc3c7;"></ion-icon>
       <p>No tienes vehículos asignados</p>
-      <p class="texto-secundario">
-        Contacta al administrador para que te asigne un vehículo.
-      </p>
+      <p class="texto-secundario">Contacta al administrador para que te asigne un vehículo.</p>
     </div>
   </div>
 
@@ -141,130 +130,81 @@
       <div class="tarjeta-vehiculo" *ngFor="let ruta of rutasAsignadas">
         <div class="vehiculo-header">
           <h4>{{ ruta.nombre_ruta }}</h4>
-          <span
-            class="badge activo"
-            [style.background]="ruta.color_hex"
-            style="
-              width: 14px;
-              height: 14px;
-              border-radius: 50%;
-              display: inline-block;
-            "
-          >
-          </span>
+          <span [style.background]="ruta.color_hex" style="width:14px;height:14px;border-radius:50%;display:inline-block;"></span>
         </div>
         <div class="vehiculo-acciones">
-          <button
-            class="btn-detalle"
-            [disabled]="!!recorridoActivo"
-            (click)="abrirModalRecorrido()"
-          >
+          <button class="btn-detalle" [disabled]="!!recorridoActivo" (click)="abrirModalRecorrido()">
+            <ion-icon [name]="recorridoActivo ? 'time' : 'play-circle'"></ion-icon>
             {{ recorridoActivo ? 'Recorrido en curso' : 'Iniciar Recorrido' }}
           </button>
         </div>
       </div>
     </div>
     <div *ngIf="!cargando && rutasAsignadas.length === 0" class="sin-vehiculos">
+      <ion-icon name="map-outline" style="font-size: 40px; color: #bdc3c7;"></ion-icon>
       <p>No tienes rutas asignadas</p>
-      <p class="texto-secundario">
-        Contacta al administrador para que te asigne una ruta.
-      </p>
+      <p class="texto-secundario">Contacta al administrador para que te asigne una ruta.</p>
     </div>
   </div>
 </ion-content>
 
 <!-- Modal Notificación -->
-<div
-  class="modal-overlay"
-  *ngIf="mostrarNotificacion"
-  (click)="cerrarNotificacion()"
->
-  <div
-    class="modal-notificacion"
+<div class="modal-overlay" *ngIf="mostrarNotificacion" (click)="cerrarNotificacion()">
+  <div class="modal-notificacion"
     [class.notif-exito]="notificacionTipo === 'exito'"
     [class.notif-error]="notificacionTipo === 'error'"
     [class.notif-info]="notificacionTipo === 'info'"
-    (click)="$event.stopPropagation()"
-  >
+    (click)="$event.stopPropagation()">
     <div class="notif-icono">
-      {{ notificacionTipo === 'exito' ? 'OK' : notificacionTipo === 'error' ?
-      'Error' : 'Informacion' }}
+      <ion-icon [name]="notificacionTipo === 'exito' ? 'checkmark-circle' : notificacionTipo === 'error' ? 'close-circle' : 'information-circle'"
+        [style.color]="notificacionTipo === 'exito' ? '#43a047' : notificacionTipo === 'error' ? '#e53935' : '#1e88e5'">
+      </ion-icon>
     </div>
     <p class="notif-mensaje">{{ notificacionMensaje }}</p>
-    <button class="btn-confirmar" (click)="cerrarNotificacion()">
-      Aceptar
-    </button>
+    <button class="btn-confirmar" (click)="cerrarNotificacion()">Aceptar</button>
   </div>
 </div>
 
 <!-- Modal Iniciar Recorrido -->
-<div
-  class="modal-overlay"
-  *ngIf="mostrarModalRecorrido"
-  (click)="cerrarModalRecorrido()"
->
+<div class="modal-overlay" *ngIf="mostrarModalRecorrido" (click)="cerrarModalRecorrido()">
   <div class="modal-contenido" (click)="$event.stopPropagation()">
     <h3>Iniciar Recorrido</h3>
     <p>Selecciona el vehículo y la ruta para comenzar</p>
 
     <div class="modal-seccion">
       <h4>Vehículo</h4>
-      <div
-        *ngFor="let v of vehiculosAsignados"
+      <div *ngFor="let v of vehiculosAsignados"
         class="item-seleccionable"
         [class.seleccionado]="vehiculoSeleccionado?.id === v.id"
         [class.item-deshabilitado]="!v.activo"
-        (click)="v.activo ? seleccionarVehiculo(v) : null"
-      >
+        (click)="v.activo ? seleccionarVehiculo(v) : null">
+        <ion-icon name="car" [style.color]="v.activo ? '#667eea' : '#bdc3c7'"></ion-icon>
         <strong>{{ v.placa }}</strong>
         <span>{{ v.marca }} {{ v.modelo }}</span>
-        <span
-          class="badge"
-          [class.activo]="v.activo"
-          [class.inactivo]="!v.activo"
-        >
+        <span class="badge" [class.activo]="v.activo" [class.inactivo]="!v.activo">
           {{ v.activo ? 'Activo' : 'Inactivo' }}
         </span>
       </div>
-      <p *ngIf="vehiculosAsignados.length === 0" class="sin-vehiculos">
-        Sin vehículos asignados
-      </p>
+      <p *ngIf="vehiculosAsignados.length === 0" class="sin-vehiculos">Sin vehículos asignados</p>
     </div>
 
     <div class="modal-seccion">
       <h4>Ruta</h4>
-      <div
-        *ngFor="let r of rutasAsignadas"
+      <div *ngFor="let r of rutasAsignadas"
         class="item-seleccionable"
         [class.seleccionado]="rutaSeleccionada?.id === r.id"
-        (click)="seleccionarRuta(r)"
-      >
-        <span
-          style="
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-          "
-          [style.background]="r.color_hex"
-        ></span>
+        (click)="seleccionarRuta(r)">
+        <span [style.background]="r.color_hex" style="width:12px;height:12px;border-radius:50%;display:inline-block;flex-shrink:0;"></span>
         <strong>{{ r.nombre_ruta }}</strong>
       </div>
-      <p *ngIf="rutasAsignadas.length === 0" class="sin-vehiculos">
-        Sin rutas asignadas
-      </p>
+      <p *ngIf="rutasAsignadas.length === 0" class="sin-vehiculos">Sin rutas asignadas</p>
     </div>
 
     <div class="modal-botones">
-      <button (click)="cerrarModalRecorrido()" class="btn-cancelar">
-        Cancelar
-      </button>
-      <button
-        (click)="confirmarInicioRecorrido()"
-        class="btn-confirmar"
-        [disabled]="!vehiculoSeleccionado || !rutaSeleccionada || iniciandoRecorrido"
-      >
+      <button (click)="cerrarModalRecorrido()" class="btn-cancelar">Cancelar</button>
+      <button (click)="confirmarInicioRecorrido()" class="btn-confirmar"
+        [disabled]="!vehiculoSeleccionado || !rutaSeleccionada || iniciandoRecorrido">
+        <ion-icon name="play-circle"></ion-icon>
         {{ iniciandoRecorrido ? 'Iniciando...' : 'Confirmar' }}
       </button>
     </div>
@@ -272,20 +212,14 @@
 </div>
 
 <!-- Modal Cerrar Sesión -->
-<div
-  class="modal-overlay"
-  *ngIf="mostrarModalCerrarSesion"
-  (click)="mostrarModalCerrarSesion = false"
->
+<div class="modal-overlay" *ngIf="mostrarModalCerrarSesion" (click)="mostrarModalCerrarSesion = false">
   <div class="modal-contenido" (click)="$event.stopPropagation()">
     <h3>¿Cerrar sesión?</h3>
     <p>¿Estás seguro de que quieres salir del sistema?</p>
     <div class="modal-botones">
-      <button (click)="mostrarModalCerrarSesion = false" class="btn-cancelar">
-        Cancelar
-      </button>
+      <button (click)="mostrarModalCerrarSesion = false" class="btn-cancelar">Cancelar</button>
       <button (click)="cerrarSesion()" class="btn-confirmar">
-        Cerrar sesión
+        <ion-icon name="log-out"></ion-icon> Cerrar sesión
       </button>
     </div>
   </div>
