@@ -137,6 +137,24 @@ ion-content {
   color: #e65100;
   font-weight: 500;
 }
+.gps-listo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #1e88e5;
+  font-weight: 500;
+}
+.gps-habilitado {
+  background: linear-gradient(135deg, #e3f2fd, #e8eaf6);
+  border: 1.5px solid #1e88e5;
+}
+.gps-habilitado .gps-dot {
+  background: #1e88e5;
+  box-shadow: 0 0 6px #1e88e5;
+  animation: pulsar 1.5s infinite;
+}
 
 /* ── Botón detener recorrido ── */ /* HEILY: CORTA Y PEGA ESTA CLASE HASTA LA LINEA 158 - RF26*/
 .btn-detener {
