@@ -11,7 +11,6 @@ import { forkJoin, Subscription } from "rxjs";
   styleUrls: ["./inicio.page.css"],
 })
 export class InicioPage implements OnInit, OnDestroy {
-
   // ── Propiedades ──
   vehiculosAsignados: Vehiculo[] = [];
   vehiculosActivos = 0;
@@ -30,6 +29,9 @@ export class InicioPage implements OnInit, OnDestroy {
   posicionActual: PosicionGPS | null = null;
   private gpsSub: Subscription | null = null;
   private gpsActivoSub: Subscription | null = null;
+
+  gpsDisponible = false;
+  private gpsDisponibleSub: Subscription | null = null;
 
   // Notificaciones
   mostrarNotificacion = false;
@@ -55,6 +57,15 @@ export class InicioPage implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
 
+    // Detección de GPS físico del celular
+    this.gpsService.iniciarDeteccionEstado();
+    this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
+      (disponible) => {
+        this.gpsDisponible = disponible;
+        this.cdr.detectChanges();
+      },
+    );
+
     // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
     // Parte JAZMIN: este método recibe cada posición y la envía a la colección 'posiciones' en Firestore
     this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
@@ -62,9 +73,11 @@ export class InicioPage implements OnInit, OnDestroy {
       this.cdr.detectChanges();
 
       if (pos && this.recorridoActivo?.id) {
-        this.apiService.guardarPosicionGPS(this.recorridoActivo.id, pos).subscribe({
-          error: (err) => console.error("Error guardando posición:", err),
-        });
+        this.apiService
+          .guardarPosicionGPS(this.recorridoActivo.id, pos)
+          .subscribe({
+            error: (err) => console.error("Error guardando posición:", err),
+          });
       }
     });
   }
@@ -72,6 +85,8 @@ export class InicioPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.gpsSub?.unsubscribe();
     this.gpsActivoSub?.unsubscribe();
+    this.gpsDisponibleSub?.unsubscribe();
+    this.gpsService.detenerDeteccionEstado();
   }
 
   // ── Notificaciones ──
@@ -105,14 +120,20 @@ export class InicioPage implements OnInit, OnDestroy {
     }).subscribe({
       next: ({ vehiculos, rutas, recorrido }) => {
         this.vehiculosAsignados = vehiculos.data || [];
-        this.vehiculosActivos = this.vehiculosAsignados.filter((v) => v.activo).length;
+        this.vehiculosActivos = this.vehiculosAsignados.filter(
+          (v) => v.activo,
+        ).length;
         this.rutasAsignadas = rutas.data || [];
         this.recorridoActivo = recorrido;
 
         // Enriquecer recorrido activo con objetos completos para mostrar nombres
         if (recorrido) {
-          this.recorridoActivo.vehiculo = this.vehiculosAsignados.find((v) => v.id === recorrido.vehiculoId) || null;
-          this.recorridoActivo.ruta = this.rutasAsignadas.find((r) => r.id === recorrido.rutaId) || null;
+          this.recorridoActivo.vehiculo =
+            this.vehiculosAsignados.find(
+              (v) => v.id === recorrido.vehiculoId,
+            ) || null;
+          this.recorridoActivo.ruta =
+            this.rutasAsignadas.find((r) => r.id === recorrido.rutaId) || null;
         }
 
         this.cargando = false;
@@ -129,7 +150,10 @@ export class InicioPage implements OnInit, OnDestroy {
 
   abrirModalRecorrido() {
     if (this.recorridoActivo) {
-      this.mostrarAlerta("Ya tienes un recorrido activo. Debes finalizarlo antes de iniciar uno nuevo.", "info");
+      this.mostrarAlerta(
+        "Ya tienes un recorrido activo. Debes finalizarlo antes de iniciar uno nuevo.",
+        "info",
+      );
       return;
     }
     this.vehiculoSeleccionado = null;
@@ -160,7 +184,8 @@ export class InicioPage implements OnInit, OnDestroy {
     }
 
     // RF8/RF9 — Verificar permisos GPS antes de iniciar
-    const { otorgado, denegadoPermanente } = await this.gpsService.verificarPermisos();
+    const { otorgado, denegadoPermanente } =
+      await this.gpsService.verificarPermisos();
 
     if (!otorgado) {
       this.cerrarModalRecorrido();
@@ -183,35 +208,44 @@ export class InicioPage implements OnInit, OnDestroy {
 
     this.iniciandoRecorrido = true;
 
-    this.apiService.iniciarRecorrido(choferId, this.vehiculoSeleccionado.id!, this.rutaSeleccionada.id!).subscribe({
-      next: async (idRecorrido) => {
-        this.recorridoActivo = {
-          id: idRecorrido,
-          choferId,
-          vehiculoId: this.vehiculoSeleccionado!.id,
-          rutaId: this.rutaSeleccionada!.id,
-          vehiculo: this.vehiculoSeleccionado,
-          ruta: this.rutaSeleccionada,
-          estado: "activo",
-          fechaInicio: new Date(),
-        };
-        this.iniciandoRecorrido = false;
-        this.cerrarModalRecorrido();
+    this.apiService
+      .iniciarRecorrido(
+        choferId,
+        this.vehiculoSeleccionado.id!,
+        this.rutaSeleccionada.id!,
+      )
+      .subscribe({
+        next: async (idRecorrido) => {
+          this.recorridoActivo = {
+            id: idRecorrido,
+            choferId,
+            vehiculoId: this.vehiculoSeleccionado!.id,
+            rutaId: this.rutaSeleccionada!.id,
+            vehiculo: this.vehiculoSeleccionado,
+            ruta: this.rutaSeleccionada,
+            estado: "activo",
+            fechaInicio: new Date(),
+          };
+          this.iniciandoRecorrido = false;
+          this.cerrarModalRecorrido();
 
-        // RF8/RF9 — Iniciar seguimiento GPS
-        const gpsIniciado = await this.gpsService.iniciarSeguimiento();
-        if (gpsIniciado) {
-          this.mostrarAlerta("Recorrido iniciado — GPS activo", "exito");
-        } else {
-          this.mostrarAlerta("No se pudo activar el GPS. Verifica los permisos.", "error");
-        }
-      },
-      error: (err) => {
-        console.error("Error iniciando recorrido:", err);
-        this.mostrarAlerta("Error al iniciar el recorrido.", "error");
-        this.iniciandoRecorrido = false;
-      },
-    });
+          // RF8/RF9 — Iniciar seguimiento GPS
+          const gpsIniciado = await this.gpsService.iniciarSeguimiento();
+          if (gpsIniciado) {
+            this.mostrarAlerta("Recorrido iniciado — GPS activo", "exito");
+          } else {
+            this.mostrarAlerta(
+              "No se pudo activar el GPS. Verifica los permisos.",
+              "error",
+            );
+          }
+        },
+        error: (err) => {
+          console.error("Error iniciando recorrido:", err);
+          this.mostrarAlerta("Error al iniciar el recorrido.", "error");
+          this.iniciandoRecorrido = false;
+        },
+      });
   }
 
   // ── RF8/RF9 — Detener solo el GPS  ──
