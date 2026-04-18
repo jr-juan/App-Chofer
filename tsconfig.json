@@ -1,7 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    "ignoreDeprecations": "6.0", 
+    //"ignoreDeprecations": "6.0",  la comento porque en esta version no existe, asi que no puedo quitar las advertencias.
     "skipLibCheck": true, 
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
