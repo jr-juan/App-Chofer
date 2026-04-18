@@ -43,7 +43,7 @@ export class InicioPage implements OnInit, OnDestroy {
     private authService: AuthService,
     private gpsService: GpsService,
     private cdr: ChangeDetectorRef,
-  ) {}
+  ) { }
 
   // ── RF3 — Ciclo de vida ──
 
@@ -57,17 +57,7 @@ export class InicioPage implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     });
 
-    // Detección de GPS físico del celular
-    this.gpsService.iniciarDeteccionEstado();
-    this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
-      (disponible) => {
-        this.gpsDisponible = disponible;
-        this.cdr.detectChanges();
-      },
-    );
-
     // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
-    // Parte JAZMIN: este método recibe cada posición y la envía a la colección 'posiciones' en Firestore
     this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
       this.posicionActual = pos;
       this.cdr.detectChanges();
@@ -80,6 +70,19 @@ export class InicioPage implements OnInit, OnDestroy {
           });
       }
     });
+
+
+
+    // Detección de GPS físico del celular
+    this.gpsService.iniciarDeteccionEstado();
+    this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
+      (disponible) => {
+        this.gpsDisponible = disponible;
+        this.cdr.detectChanges();
+      },
+    );
+
+
   }
 
   ngOnDestroy() {
