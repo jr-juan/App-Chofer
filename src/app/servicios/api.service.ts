@@ -15,7 +15,7 @@ import {
   deleteDoc,
   getDoc,
 } from 'firebase/firestore';
-import { Ruta, CrearRuta, Vehiculo, Calle, RespuestaAPI, PosicionGPS } from '../modelos/interfaces';
+import { Ruta, CrearRuta, Vehiculo, Calle, RespuestaAPI, PosicionGPS, Hito } from '../modelos/interfaces';
 
 @Injectable({
   providedIn: 'root',
@@ -267,4 +267,21 @@ finalizarRecorrido(recorridoId: string): Observable<void> {
   })).pipe(map(() => void 0));
 }
 
-}
+
+// ==================== HITOS ====================
+
+enviarHito(hito: Hito): Observable<any> {
+  const payload = {
+    recorrido_id: hito.recorridoId,
+    kilometro: hito.kilometro,
+    latitud: hito.latitud,
+    longitud: hito.longitud,
+    fecha_registro: hito.fechaRegistro,
+    imagen: hito.imagenBase64,
+    perfil_id: this.PERFIL_ID
+  };
+
+  return this.http.post<any>(`${this.urlBase}/hitos`, payload);
+
+  }
+  }

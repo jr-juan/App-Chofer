@@ -52,3 +52,13 @@ export interface PosicionGPS {
   precision: number;
   fechaRegistro?: Date;
 }
+
+export interface Hito {
+  recorridoId: string;
+  kilometro: number;
+  latitud: number;
+  longitud: number;
+  fechaRegistro: Date;
+  imagenBase64: string;   // RF17 — viene de Jazmin también
+  enviado: boolean;       // para modo offline (RF21/RF22)
+}
