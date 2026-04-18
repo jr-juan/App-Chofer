@@ -22,6 +22,10 @@ export class GpsService {
     this._posicionActual.asObservable();
   gpsActivo$: Observable<boolean> = this._gpsActivo.asObservable();
 
+  private _gpsDisponible = new BehaviorSubject<boolean>(false);
+  gpsDisponible$: Observable<boolean> = this._gpsDisponible.asObservable();
+  private poleoInterval: any = null;
+
   async solicitarPermisos(): Promise<boolean> {
     try {
       const permiso = await Geolocation.requestPermissions();
@@ -179,5 +183,31 @@ export class GpsService {
     );
 
     return tiempoPasado && distancia >= this.DISTANCIA_MIN;
+  }
+
+  iniciarDeteccionEstado(): void {
+    if (this.poleoInterval) return;
+
+    const verificar = async () => {
+      try {
+        await Geolocation.getCurrentPosition({
+          timeout: 3000,
+          enableHighAccuracy: false,
+        });
+        this._gpsDisponible.next(true);
+      } catch {
+        this._gpsDisponible.next(false);
+      }
+    };
+
+    verificar();
+    this.poleoInterval = setInterval(verificar, 5000);
+  }
+
+  detenerDeteccionEstado(): void {
+    if (this.poleoInterval) {
+      clearInterval(this.poleoInterval);
+      this.poleoInterval = null;
+    }
   }
 }
