@@ -4,6 +4,8 @@ import { AuthService } from "../../servicios/auth.service";
 import { GpsService } from "../../servicios/gps.service";
 import { Vehiculo, Ruta, PosicionGPS } from "../../modelos/interfaces";
 import { forkJoin, Subscription } from "rxjs";
+import { CamaraService } from '../../servicios/camara.service';
+import { AlmacenamientoService } from '../../servicios/almacenamiento.service';
 
 @Component({
   selector: "app-inicio",
@@ -29,6 +31,7 @@ export class InicioPage implements OnInit, OnDestroy {
   posicionActual: PosicionGPS | null = null;
   private gpsSub: Subscription | null = null;
   private gpsActivoSub: Subscription | null = null;
+  private hitoSub: Subscription | null = null;
 
   gpsDisponible = false;
   private gpsDisponibleSub: Subscription | null = null;
@@ -39,11 +42,13 @@ export class InicioPage implements OnInit, OnDestroy {
   notificacionMensaje = "";
 
   constructor(
-    private apiService: ApiService,
-    private authService: AuthService,
-    private gpsService: GpsService,
-    private cdr: ChangeDetectorRef,
-  ) { }
+  private apiService: ApiService,
+  private authService: AuthService,
+  private gpsService: GpsService,
+  private cdr: ChangeDetectorRef,
+  private camaraService: CamaraService,           
+  private almacenamientoService: AlmacenamientoService  
+) {}
 
   // ── RF3 — Ciclo de vida ──
 
@@ -62,6 +67,12 @@ export class InicioPage implements OnInit, OnDestroy {
       this.posicionActual = pos;
       this.cdr.detectChanges();
 
+      // RF14 — Alerta de hito cada 1 km
+      this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
+        if (km !== null) {
+          this.mostrarAlerta(`🏁 ¡Hito alcanzado! Llevas ${km} km recorrido(s).`, 'info');
+        }
+      });
       if (pos && this.recorridoActivo?.id) {
         this.apiService
           .guardarPosicionGPS(this.recorridoActivo.id, pos)
@@ -90,6 +101,7 @@ export class InicioPage implements OnInit, OnDestroy {
     this.gpsActivoSub?.unsubscribe();
     this.gpsDisponibleSub?.unsubscribe();
     this.gpsService.detenerDeteccionEstado();
+    this.hitoSub?.unsubscribe();
   }
 
   // ── Notificaciones ──
@@ -251,7 +263,7 @@ export class InicioPage implements OnInit, OnDestroy {
       });
   }
 
- // ── RF8/RF9 — Detener solo el GPS  ──
+  // ── RF8/RF9 — Detener solo el GPS  ──
 
   async detenerGPS() {
     await this.gpsService.detenerSeguimiento();
@@ -259,7 +271,7 @@ export class InicioPage implements OnInit, OnDestroy {
   }
 
 
-// ─ RF26 — Finalizar recorrido manualmente + detener GPS ─
+  // ─ RF26 — Finalizar recorrido manualmente + detener GPS ─
 
   async finalizarRecorrido() {
     if (!this.recorridoActivo?.id) return;
@@ -277,6 +289,27 @@ export class InicioPage implements OnInit, OnDestroy {
     });
   }
 
+// RF15 — Captura de evidencia fotográfica
+async capturarEvidencia() {
+  if (!this.recorridoActivo?.id) {
+    this.mostrarAlerta('Debes tener un recorrido activo para capturar evidencia.', 'info');
+    return;
+  }
+
+  const base64 = await this.camaraService.tomarFoto();
+
+  if (!base64) {
+    this.mostrarAlerta('No se pudo capturar la foto.', 'error');
+    return;
+  }
+
+  await this.almacenamientoService.guardarImagenPendiente(
+    this.recorridoActivo.id,
+    base64
+  );
+
+  this.mostrarAlerta('Evidencia guardada correctamente.', 'exito');
+}
 
   // ── Sesión ──
 
