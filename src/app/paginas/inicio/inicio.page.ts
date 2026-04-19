@@ -52,49 +52,46 @@ export class InicioPage implements OnInit, OnDestroy {
 
   // ── RF3 — Ciclo de vida ──
 
-  ngOnInit() {
-    this.nombreChofer = this.authService.currentUser?.displayName || "Chofer";
-    this.cargarDatos();
+ngOnInit() {
+  this.nombreChofer = this.authService.currentUser?.displayName || "Chofer";
+  this.cargarDatos();
 
-    // RF8/RF9 — Suscripción al estado del GPS
-    this.gpsActivoSub = this.gpsService.gpsActivo$.subscribe((activo) => {
-      this.gpsActivo = activo;
+  // RF8/RF9 — Suscripción al estado del GPS
+  this.gpsActivoSub = this.gpsService.gpsActivo$.subscribe((activo) => {
+    this.gpsActivo = activo;
+    this.cdr.detectChanges();
+  });
+
+  // RF14 — Alerta de hito cada 1 km
+  this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
+    if (km !== null) {
+      this.mostrarAlerta(`🏁 ¡Hito alcanzado! Llevas ${km} km recorrido(s).`, 'info');
+    }
+  });
+
+  // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
+  this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
+    this.posicionActual = pos;
+    this.cdr.detectChanges();
+
+    if (pos && this.recorridoActivo?.id) {
+      this.apiService
+        .guardarPosicionGPS(this.recorridoActivo.id, pos)
+        .subscribe({
+          error: (err) => console.error("Error guardando posición:", err),
+        });
+    }
+  });
+
+  // Detección de GPS físico del celular
+  this.gpsService.iniciarDeteccionEstado();
+  this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
+    (disponible) => {
+      this.gpsDisponible = disponible;
       this.cdr.detectChanges();
-    });
-
-    // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
-    this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
-      this.posicionActual = pos;
-      this.cdr.detectChanges();
-
-      // RF14 — Alerta de hito cada 1 km
-      this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
-        if (km !== null) {
-          this.mostrarAlerta(`🏁 ¡Hito alcanzado! Llevas ${km} km recorrido(s).`, 'info');
-        }
-      });
-      if (pos && this.recorridoActivo?.id) {
-        this.apiService
-          .guardarPosicionGPS(this.recorridoActivo.id, pos)
-          .subscribe({
-            error: (err) => console.error("Error guardando posición:", err),
-          });
-      }
-    });
-
-
-
-    // Detección de GPS físico del celular
-    this.gpsService.iniciarDeteccionEstado();
-    this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
-      (disponible) => {
-        this.gpsDisponible = disponible;
-        this.cdr.detectChanges();
-      },
-    );
-
-
-  }
+    },
+  );
+}
 
   ngOnDestroy() {
     this.gpsSub?.unsubscribe();
