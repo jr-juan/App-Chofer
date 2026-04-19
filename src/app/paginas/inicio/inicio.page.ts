@@ -251,15 +251,15 @@ export class InicioPage implements OnInit, OnDestroy {
       });
   }
 
-  // ── RF8/RF9 — Detener solo el GPS  ──
+ // ── RF8/RF9 — Detener solo el GPS  ──
 
   async detenerGPS() {
     await this.gpsService.detenerSeguimiento();
     this.mostrarAlerta("GPS detenido. El recorrido sigue activo.", "info");
   }
 
-  // ── RF26 — Finalizar recorrido manualmente + detener GPS ──
-  // Parte HEILY: este botón aparece en la card de recorrido activo en el HTML
+
+// ─ RF26 — Finalizar recorrido manualmente + detener GPS ─
 
   async finalizarRecorrido() {
     if (!this.recorridoActivo?.id) return;
@@ -276,6 +276,7 @@ export class InicioPage implements OnInit, OnDestroy {
       },
     });
   }
+
 
   // ── Sesión ──
 
