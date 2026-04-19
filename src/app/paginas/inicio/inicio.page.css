@@ -66,114 +66,7 @@ ion-content {
   line-height: 1.3;
 }
 
-/* ── GPS Card  HELIY CORTA T PEGA HASTA LA LINEA 157 RF16 ── */
-.seccion-gps {
-  padding: 6px 16px;
-}
-.gps-card {
-  border-radius: 14px;
-  padding: 16px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-}
-.gps-activo {
-  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
-  border: 1.5px solid #43a047;
-}
-.gps-inactivo {
-  background: linear-gradient(135deg, #fff8e1, #fff3e0);
-  border: 1.5px solid #ffa726;
-}
-.gps-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.gps-header strong {
-  flex: 1;
-  font-size: 0.95rem;
-  color: #2c3e50;
-}
-.gps-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ffa726;
-  display: inline-block;
-}
-.gps-activo .gps-dot {
-  background: #43a047;
-  box-shadow: 0 0 6px #43a047;
-  animation: pulsar 1.5s infinite;
-}
-@keyframes pulsar {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.gps-coords {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  font-size: 13px;
-  color: #388e3c;
-}
-.gps-precision {
-  color: #757575;
-  font-size: 12px;
-}
-.gps-buscando {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #e65100;
-  font-style: italic;
-}
-.gps-aviso {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #e65100;
-  font-weight: 500;
-}
-.gps-listo {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: #1e88e5;
-  font-weight: 500;
-}
-.gps-habilitado {
-  background: linear-gradient(135deg, #e3f2fd, #e8eaf6);
-  border: 1.5px solid #1e88e5;
-}
-.gps-habilitado .gps-dot {
-  background: #1e88e5;
-  box-shadow: 0 0 6px #1e88e5;
-  animation: pulsar 1.5s infinite;
-}
 
-/* ── Botón detener recorrido ── */ /* HEILY: CORTA Y PEGA ESTA CLASE HASTA LA LINEA 176 - RF26*/
-.btn-detener {
-  width: 100%;
-  margin-top: 12px;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  background: linear-gradient(135deg, #e53935, #c62828);
-  color: white;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  letter-spacing: 0.5px;
-  box-shadow: 0 3px 8px rgba(229,57,53,0.3);
-}
-.btn-detener:active {
-  transform: scale(0.98);
-}
 
 /* ── Recorrido activo card ── */
 .recorrido-card {
@@ -268,6 +161,116 @@ ion-content {
   cursor: not-allowed;
   opacity: 0.7;
 }
+
+/* ── GPS Card ── */
+.seccion-gps {
+  padding: 6px 16px;
+}
+.gps-card {
+  border-radius: 14px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.gps-activo {
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+  border: 1.5px solid #43a047;
+}
+.gps-inactivo {
+  background: linear-gradient(135deg, #fff8e1, #fff3e0);
+  border: 1.5px solid #ffa726;
+}
+.gps-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gps-header strong {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #2c3e50;
+}
+.gps-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffa726;
+  display: inline-block;
+}
+.gps-activo .gps-dot {
+  background: #43a047;
+  box-shadow: 0 0 6px #43a047;
+  animation: pulsar 1.5s infinite;
+}
+@keyframes pulsar {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.gps-coords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #388e3c;
+}
+.gps-precision {
+  color: #757575;
+  font-size: 12px;
+}
+.gps-buscando {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #e65100;
+  font-style: italic;
+}
+.gps-aviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #e65100;
+  font-weight: 500;
+}
+.gps-listo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #1e88e5;
+  font-weight: 500;
+}
+.gps-habilitado {
+  background: linear-gradient(135deg, #e3f2fd, #e8eaf6);
+  border: 1.5px solid #1e88e5;
+}
+.gps-habilitado .gps-dot {
+  background: #1e88e5;
+  box-shadow: 0 0 6px #1e88e5;
+  animation: pulsar 1.5s infinite;
+}
+
+/* ── Botón detener recorrido ──*/
+.btn-detener {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 3px 8px rgba(229,57,53,0.3);
+}
+.btn-detener:active {
+  transform: scale(0.98);
+}
+
 
 /* ── Estados ── */
 .loading { text-align: center; padding: 30px 20px; color: #7f8c8d; }
