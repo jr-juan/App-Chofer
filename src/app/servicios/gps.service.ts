@@ -8,6 +8,7 @@ import { PosicionGPS } from "../modelos/interfaces";
   providedIn: "root",
 })
 export class GpsService {
+
   private watchId: string | null = null;
   private _posicionActual = new BehaviorSubject<PosicionGPS | null>(null);
   private _gpsActivo = new BehaviorSubject<boolean>(false);
@@ -15,13 +16,15 @@ export class GpsService {
   private ultimaPosicion: PosicionGPS | null = null;
 
   private ultimoEnvio: number = 0;
-  private INTERVALO_MS = 15000; // 15 segundos
-  private DISTANCIA_MIN = 5; // 5 metros
+  private INTERVALO_MS = 30000; // 30 segundos
+  private DISTANCIA_MIN = 10; // 10 metros
 
-private distanciaAcumulada: number = 0;
-private DISTANCIA_HITO = 1000; // 1 km en metros
-private _hitoAlcanzado = new BehaviorSubject<number | null>(null);
-hitoAlcanzado$: Observable<number | null> = this._hitoAlcanzado.asObservable();
+  private distanciaAcumulada: number = 0;
+  private DISTANCIA_HITO = 1000; // 1 km en metros
+  private _hitoAlcanzado = new BehaviorSubject<number | null>(null);
+
+  hitoAlcanzado$: Observable<number | null> =
+    this._hitoAlcanzado.asObservable();
 
   posicionActual$: Observable<PosicionGPS | null> =
     this._posicionActual.asObservable();
@@ -71,28 +74,32 @@ hitoAlcanzado$: Observable<number | null> = this._hitoAlcanzado.asObservable();
               };
 
               if (this.debeEnviar(posicion)) {
-  // Acumular distancia para hitos
-  if (this.ultimaPosicion) {
-    const metros = this.calcularDistancia(
-      this.ultimaPosicion.latitud,
-      this.ultimaPosicion.longitud,
-      posicion.latitud,
-      posicion.longitud
-    );
-    this.distanciaAcumulada += metros;
+                // Acumular distancia para hitos
+                if (this.ultimaPosicion) {
+                  const metros = this.calcularDistancia(
+                    this.ultimaPosicion.latitud,
+                    this.ultimaPosicion.longitud,
+                    posicion.latitud,
+                    posicion.longitud,
+                  );
+                  this.distanciaAcumulada += metros;
 
-    const kmActual = Math.floor(this.distanciaAcumulada / this.DISTANCIA_HITO);
-    const kmAnterior = Math.floor((this.distanciaAcumulada - metros) / this.DISTANCIA_HITO);
+                  const kmActual = Math.floor(
+                    this.distanciaAcumulada / this.DISTANCIA_HITO,
+                  );
+                  const kmAnterior = Math.floor(
+                    (this.distanciaAcumulada - metros) / this.DISTANCIA_HITO,
+                  );
 
-    if (kmActual > kmAnterior) {
-      this._hitoAlcanzado.next(kmActual); // emite el km que se cumplió
-    }
-  }
+                  if (kmActual > kmAnterior) {
+                    this._hitoAlcanzado.next(kmActual); // emite el km que se cumplió
+                  }
+                }
 
-  this.ultimaPosicion = posicion;
-  this.ultimoEnvio = Date.now();
-  this._posicionActual.next(posicion);
-}
+                this.ultimaPosicion = posicion;
+                this.ultimoEnvio = Date.now();
+                this._posicionActual.next(posicion);
+              }
             }
           }
         },
@@ -117,7 +124,6 @@ hitoAlcanzado$: Observable<number | null> = this._hitoAlcanzado.asObservable();
     this.ultimoEnvio = 0;
     this.distanciaAcumulada = 0;
     this._hitoAlcanzado.next(null);
-
   }
 
   async obtenerPosicionUnica(): Promise<PosicionGPS | null> {
