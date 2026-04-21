@@ -284,4 +284,33 @@ enviarHito(hito: Hito): Observable<any> {
   return this.http.post<any>(`${this.urlBase}/hitos`, payload);
 
   }
+
+  guardarHitoFirestore(hito: Hito): Observable<void> {
+  const hitosCollection = collection(firebaseDB, 'hitos');
+  const datos = {
+    recorridoId: hito.recorridoId,
+    kilometro: hito.kilometro,
+    latitud: hito.latitud,
+    longitud: hito.longitud,
+    fechaRegistro: hito.fechaRegistro,
+    imagenBase64: hito.imagenBase64,
+    enviado: hito.enviado
+  };
+  return from(addDoc(hitosCollection, datos)).pipe(map(() => void 0));
+}
+
+
+  // ==================== EVIDENCIAS ====================
+
+guardarEvidencia(recorridoId: string, imagenBase64: string, posicion: PosicionGPS | null): Observable<void> {
+  const evidenciasCollection = collection(firebaseDB, 'evidencias');
+  const datos = {
+    recorridoId,
+    imagenBase64,
+    latitud: posicion?.latitud ?? null,
+    longitud: posicion?.longitud ?? null,
+    fechaRegistro: new Date()
+  };
+  return from(addDoc(evidenciasCollection, datos)).pipe(map(() => void 0));
+}
   }
