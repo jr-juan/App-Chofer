@@ -50,7 +50,7 @@
 
   <!-- Estado GPS -->
   <div class="seccion-gps">
-   <div
+    <div
       class="gps-card"
       [class.gps-activo]="gpsActivo"
       [class.gps-habilitado]="!gpsActivo && gpsDisponible"
@@ -58,7 +58,10 @@
     >
       <div class="gps-header">
         <span class="gps-dot"></span>
-        <strong>{{ gpsActivo ? 'GPS Activo' : (gpsDisponible ? 'GPS Habilitado' : 'GPS Inactivo') }}</strong>
+        <strong
+          >{{ gpsActivo ? 'GPS Activo' : (gpsDisponible ? 'GPS Habilitado' :
+          'GPS Inactivo') }}</strong
+        >
         <ion-button
           *ngIf="gpsActivo"
           color="danger"
@@ -67,6 +70,17 @@
           (click)="detenerGPS()"
         >
           Detener GPS
+        </ion-button>
+
+        <ion-button
+          *ngIf="!gpsActivo && recorridoActivo"
+          color="primary"
+          size="small"
+          fill="outline"
+          (click)="reanudarGPS()"
+        >
+          <ion-icon name="navigate" slot="start"></ion-icon>
+          Reanudar GPS
         </ion-button>
       </div>
       <div *ngIf="gpsActivo && posicionActual" class="gps-coords">
@@ -111,14 +125,13 @@
           || recorridoActivo.rutaId }}</span
         >
         <span
-          ><ion-icon name="time"></ion-icon> {{ recorridoActivo.fechaInicio |
-          date:'shortTime' }}</span
+          ><ion-icon name="time"></ion-icon> {{ (recorridoActivo.fechaInicio?.toDate ? recorridoActivo.fechaInicio.toDate() : recorridoActivo.fechaInicio) | date:'shortTime' }}</span
         >
       </div>
-      
-     <button class="btn-evidencia" (click)="capturarEvidencia()">
-  <ion-icon name="camera"></ion-icon> Capturar Evidencia
-</button>
+
+      <button class="btn-evidencia" (click)="capturarEvidencia()">
+        <ion-icon name="camera"></ion-icon> Capturar Evidencia
+      </button>
 
       <button class="btn-detener" (click)="finalizarRecorrido()">
         <ion-icon name="stop-circle"></ion-icon> Finalizar Recorrido
