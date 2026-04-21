@@ -9,7 +9,7 @@ export class CamaraService {
   async tomarFoto(): Promise<string | null> {
     try {
       const foto = await Camera.getPhoto({
-        quality: 70,
+        quality: 30,
         allowEditing: false,
         resultType: CameraResultType.Base64,
         source: CameraSource.Camera,
