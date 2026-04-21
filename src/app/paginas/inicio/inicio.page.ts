@@ -2,10 +2,11 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
 import { ApiService } from "../../servicios/api.service";
 import { AuthService } from "../../servicios/auth.service";
 import { GpsService } from "../../servicios/gps.service";
-import { Vehiculo, Ruta, PosicionGPS } from "../../modelos/interfaces";
+import { Vehiculo, Ruta, PosicionGPS, Hito } from "../../modelos/interfaces";
 import { forkJoin, Subscription } from "rxjs";
-import { CamaraService } from '../../servicios/camara.service';
-import { AlmacenamientoService } from '../../servicios/almacenamiento.service';
+import { CamaraService } from "../../servicios/camara.service";
+import { AlmacenamientoService } from "../../servicios/almacenamiento.service";
+import { App } from "@capacitor/app";
 
 @Component({
   selector: "app-inicio",
@@ -42,56 +43,90 @@ export class InicioPage implements OnInit, OnDestroy {
   notificacionMensaje = "";
 
   constructor(
-  private apiService: ApiService,
-  private authService: AuthService,
-  private gpsService: GpsService,
-  private cdr: ChangeDetectorRef,
-  private camaraService: CamaraService,           
-  private almacenamientoService: AlmacenamientoService  
-) {}
+    private apiService: ApiService,
+    private authService: AuthService,
+    private gpsService: GpsService,
+    private cdr: ChangeDetectorRef,
+    private camaraService: CamaraService,
+    private almacenamientoService: AlmacenamientoService,
+  ) {}
 
   // ── RF3 — Ciclo de vida ──
 
-ngOnInit() {
-  this.nombreChofer = this.authService.currentUser?.displayName || "Chofer";
-  this.cargarDatos();
+  ngOnInit() {
+    this.nombreChofer = this.authService.currentUser?.displayName || "Chofer";
+    this.cargarDatos();
 
-  // RF8/RF9 — Suscripción al estado del GPS
-  this.gpsActivoSub = this.gpsService.gpsActivo$.subscribe((activo) => {
-    this.gpsActivo = activo;
-    this.cdr.detectChanges();
-  });
-
-  // RF14 — Alerta de hito cada 1 km
-  this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
-    if (km !== null) {
-      this.mostrarAlerta(`🏁 ¡Hito alcanzado! Llevas ${km} km recorrido(s).`, 'info');
-    }
-  });
-
-  // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
-  this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
-    this.posicionActual = pos;
-    this.cdr.detectChanges();
-
-    if (pos && this.recorridoActivo?.id) {
-      this.apiService
-        .guardarPosicionGPS(this.recorridoActivo.id, pos)
-        .subscribe({
-          error: (err) => console.error("Error guardando posición:", err),
-        });
-    }
-  });
-
-  // Detección de GPS físico del celular
-  this.gpsService.iniciarDeteccionEstado();
-  this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
-    (disponible) => {
-      this.gpsDisponible = disponible;
+    // RF8/RF9 — Suscripción al estado del GPS
+    this.gpsActivoSub = this.gpsService.gpsActivo$.subscribe((activo) => {
+      this.gpsActivo = activo;
       this.cdr.detectChanges();
-    },
-  );
-}
+    });
+
+    // RF14 — Alerta de hito cada 1 km
+this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
+  if (km !== null && this.recorridoActivo?.id) {
+    this.mostrarAlerta(
+      `🏁 ¡Hito alcanzado! Llevas ${km} km en la ruta ${this.recorridoActivo.ruta?.nombre_ruta || this.recorridoActivo.rutaId}.`,
+      "info",
+    );
+
+    const hito: Hito = {
+      recorridoId: this.recorridoActivo.id,
+      kilometro: km,
+      latitud: this.posicionActual?.latitud ?? 0,
+      longitud: this.posicionActual?.longitud ?? 0,
+      fechaRegistro: new Date(),
+      imagenBase64: "",
+      enviado: false,
+    };
+
+    // Guardar en Firestore
+    this.apiService.guardarHitoFirestore(hito).subscribe({
+      next: () => console.log('Hito guardado en Firestore'),
+      error: (err) => {
+        console.error('Error guardando hito en Firestore:', err);
+        // Guardar local como pendiente para sincronizar después
+        this.almacenamientoService.guardarHitoPendiente(hito);
+      }
+    });
+  }
+});
+
+    // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
+    this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
+      this.posicionActual = pos;
+      this.cdr.detectChanges();
+
+      if (pos && this.recorridoActivo?.id) {
+        this.apiService
+          .guardarPosicionGPS(this.recorridoActivo.id, pos)
+          .subscribe({
+            error: (err) => console.error("Error guardando posición:", err),
+          });
+      }
+    });
+
+    // Detección de GPS físico del celular
+    this.gpsService.iniciarDeteccionEstado();
+    this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
+      (disponible) => {
+        this.gpsDisponible = disponible;
+        this.cdr.detectChanges();
+      },
+    );
+
+    // Recargar datos cuando la app vuelve al foco (ej: después de cámara)
+    App.addListener("appStateChange", async ({ isActive }) => {
+      if (isActive) {
+        this.cargarDatos();
+        // Si hay recorrido activo y el GPS se apagó, reanudarlo automáticamente
+        if (this.recorridoActivo && !this.gpsService.estaActivo) {
+          await this.gpsService.iniciarSeguimiento();
+        }
+      }
+    });
+  }
 
   ngOnDestroy() {
     this.gpsSub?.unsubscribe();
@@ -99,6 +134,7 @@ ngOnInit() {
     this.gpsDisponibleSub?.unsubscribe();
     this.gpsService.detenerDeteccionEstado();
     this.hitoSub?.unsubscribe();
+    App.removeAllListeners();
   }
 
   // ── Notificaciones ──
@@ -267,6 +303,18 @@ ngOnInit() {
     this.mostrarAlerta("GPS detenido. El recorrido sigue activo.", "info");
   }
 
+  // Reanudar GPS con recorrido activo
+  async reanudarGPS() {
+    const gpsIniciado = await this.gpsService.iniciarSeguimiento();
+    if (gpsIniciado) {
+      this.mostrarAlerta("GPS reanudado correctamente.", "exito");
+    } else {
+      this.mostrarAlerta(
+        "No se pudo reanudar el GPS. Verifica los permisos.",
+        "error",
+      );
+    }
+  }
 
   // ─ RF26 — Finalizar recorrido manualmente + detener GPS ─
 
@@ -286,27 +334,51 @@ ngOnInit() {
     });
   }
 
-// RF15 — Captura de evidencia fotográfica
-async capturarEvidencia() {
-  if (!this.recorridoActivo?.id) {
-    this.mostrarAlerta('Debes tener un recorrido activo para capturar evidencia.', 'info');
-    return;
+  // RF15 — Captura de evidencia fotográfica
+  async capturarEvidencia() {
+    if (!this.recorridoActivo?.id) {
+      this.mostrarAlerta(
+        "Debes tener un recorrido activo para capturar evidencia.",
+        "info",
+      );
+      return;
+    }
+
+    let base64: string | null = null;
+    try {
+      base64 = await this.camaraService.tomarFoto();
+    } catch (err) {
+      console.error("Error cámara:", err);
+      this.mostrarAlerta("Error al abrir la cámara.", "error");
+      return;
+    }
+
+    if (!base64) {
+      this.mostrarAlerta("No se pudo capturar la foto.", "error");
+      return;
+    }
+
+    // Guardar local (offline)
+    await this.almacenamientoService.guardarImagenPendiente(
+      this.recorridoActivo.id,
+      base64,
+    );
+
+    // Guardar en Firestore
+    this.apiService
+      .guardarEvidencia(this.recorridoActivo.id, base64, this.posicionActual)
+      .subscribe({
+        next: () =>
+          this.mostrarAlerta("Evidencia guardada correctamente.", "exito"),
+        error: (err) => {
+          console.error("Error guardando evidencia en Firestore:", err);
+          this.mostrarAlerta(
+            "Conexión inestable — evidencia guardada localmente. Se sincronizará cuando haya señal.",
+            "info",
+          );
+        },
+      });
   }
-
-  const base64 = await this.camaraService.tomarFoto();
-
-  if (!base64) {
-    this.mostrarAlerta('No se pudo capturar la foto.', 'error');
-    return;
-  }
-
-  await this.almacenamientoService.guardarImagenPendiente(
-    this.recorridoActivo.id,
-    base64
-  );
-
-  this.mostrarAlerta('Evidencia guardada correctamente.', 'exito');
-}
 
   // ── Sesión ──
 
