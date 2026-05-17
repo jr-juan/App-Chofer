@@ -25,16 +25,13 @@ export class AuthService {
   }
   constructor(private router: Router) {
     onAuthStateChanged(firebaseAuth, async (user) => {
-      console.log(
-        "🔥 onAuthStateChanged disparado, user:",
-        user?.uid ?? "null",
-      );
+     
       if (user) {
         const rol = await this.obtenerRolUsuario(user.uid);
-        console.log(" Rol obtenido:", rol);
+     
         this.rolUsuarioSubject.next(rol);
       } else {
-        console.log(" Sin usuario — redirigiendo a null");
+
         this.rolUsuarioSubject.next(null);
       }
     });
@@ -53,7 +50,6 @@ export class AuthService {
         password,
       );
       const user = userCredential.user;
-      console.log("Usuario autenticado:", user?.uid);
 
       if (user) {
         const rol = await this.obtenerRolUsuario(user.uid);
