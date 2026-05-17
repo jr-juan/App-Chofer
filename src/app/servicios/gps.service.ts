@@ -233,7 +233,7 @@ export class GpsService {
     };
 
     verificar();
-    this.poleoInterval = setInterval(verificar, 5000);
+    this.poleoInterval = setInterval(verificar, 1500);
   }
 
   detenerDeteccionEstado(): void {
