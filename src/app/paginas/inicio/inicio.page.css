@@ -461,3 +461,34 @@ ion-content {
 .notif-advertencia {
   border-top: 4px solid #f57c00;
 }
+
+
+
+/*  Seccion Iniciar Recorrido  */
+
+.btn-iniciar-recorrido {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-iniciar-recorrido:disabled {
+  background: linear-gradient(135deg, #bdc3c7, #95a5a6);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-iniciar-recorrido ion-icon {
+  font-size: 20px;
+}
