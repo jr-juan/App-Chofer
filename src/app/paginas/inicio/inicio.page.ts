@@ -2,11 +2,19 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
 import { ApiService } from "../../servicios/api.service";
 import { AuthService } from "../../servicios/auth.service";
 import { GpsService } from "../../servicios/gps.service";
-import { Vehiculo, Ruta, PosicionGPS, Hito } from "../../modelos/interfaces";
+import {
+  Vehiculo,
+  Ruta,
+  PosicionGPS,
+  Hito,
+  Recorrido,
+} from "../../modelos/interfaces";
 import { forkJoin, Subscription } from "rxjs";
 import { CamaraService } from "../../servicios/camara.service";
 import { AlmacenamientoService } from "../../servicios/almacenamiento.service";
+import { SincronizarService } from "../../servicios/sincronizar.service";
 import { App } from "@capacitor/app";
+import { promise } from "protractor";
 
 @Component({
   selector: "app-inicio",
@@ -25,7 +33,10 @@ export class InicioPage implements OnInit, OnDestroy {
   vehiculoSeleccionado: Vehiculo | null = null;
   rutaSeleccionada: Ruta | null = null;
   iniciandoRecorrido = false;
-  recorridoActivo: any = null;
+
+  recorridoActivo:
+    | (Recorrido & { vehiculo?: Vehiculo | null; ruta?: Ruta | null })
+    | null = null;
 
   // GPS
   gpsActivo = false;
@@ -34,8 +45,13 @@ export class InicioPage implements OnInit, OnDestroy {
   private gpsActivoSub: Subscription | null = null;
   private hitoSub: Subscription | null = null;
 
+  gpsActivando = false;
+  gpsIniciando = false;
+
   gpsDisponible = false;
   private gpsDisponibleSub: Subscription | null = null;
+
+  private gpsDisponibleAnterior = false;
 
   // Notificaciones
   mostrarNotificacion = false;
@@ -49,6 +65,7 @@ export class InicioPage implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private camaraService: CamaraService,
     private almacenamientoService: AlmacenamientoService,
+    private sincronizarService: SincronizarService
   ) {}
 
   // ── RF3 — Ciclo de vida ──
@@ -64,34 +81,32 @@ export class InicioPage implements OnInit, OnDestroy {
     });
 
     // RF14 — Alerta de hito cada 1 km
-this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
-  if (km !== null && this.recorridoActivo?.id) {
-    this.mostrarAlerta(
-      `🏁 ¡Hito alcanzado! Llevas ${km} km en la ruta ${this.recorridoActivo.ruta?.nombre_ruta || this.recorridoActivo.rutaId}.`,
-      "info",
-    );
+    this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
+      if (km !== null && this.recorridoActivo?.id) {
+        this.mostrarAlerta(
+          `¡Hito alcanzado! Llevas ${km} km en la ruta ${this.recorridoActivo.ruta?.nombre_ruta || this.recorridoActivo.rutaId}.`,
+          "info",
+        );
 
-    const hito: Hito = {
-      recorridoId: this.recorridoActivo.id,
-      kilometro: km,
-      latitud: this.posicionActual?.latitud ?? 0,
-      longitud: this.posicionActual?.longitud ?? 0,
-      fechaRegistro: new Date(),
-      imagenBase64: "",
-      enviado: false,
-    };
+        const hito: Hito = {
+          recorridoId: this.recorridoActivo.id,
+          kilometro: km,
+          latitud: this.posicionActual?.latitud ?? 0,
+          longitud: this.posicionActual?.longitud ?? 0,
+          fechaRegistro: new Date(),
+          imagenBase64: "",
+          enviado: false,
+        };
 
-    // Guardar en Firestore
-    this.apiService.guardarHitoFirestore(hito).subscribe({
-      next: () => console.log('Hito guardado en Firestore'),
-      error: (err) => {
-        console.error('Error guardando hito en Firestore:', err);
-        // Guardar local como pendiente para sincronizar después
-        this.almacenamientoService.guardarHitoPendiente(hito);
+        this.apiService.guardarHitoFirestore(hito).subscribe({
+          next: () => console.log("Hito guardado en Firestore"),
+          error: (err) => {
+            console.error("Error guardando hito en Firestore:", err);
+            this.almacenamientoService.guardarHitoPendiente(hito);
+          },
+        });
       }
     });
-  }
-});
 
     // RF10/RF11 — Suscripción a posiciones GPS + envío a Firestore
     this.gpsSub = this.gpsService.posicionActual$.subscribe((pos) => {
@@ -109,8 +124,19 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
 
     // Detección de GPS físico del celular
     this.gpsService.iniciarDeteccionEstado();
+
+    // Muestra cargando cuando el GPS se enciende manualmente
     this.gpsDisponibleSub = this.gpsService.gpsDisponible$.subscribe(
       (disponible) => {
+        if (!this.gpsDisponibleAnterior && disponible) {
+          this.gpsIniciando = true;
+          this.cdr.detectChanges();
+          setTimeout(() => {
+            this.gpsIniciando = false;
+            this.cdr.detectChanges();
+          }, 2000);
+        }
+        this.gpsDisponibleAnterior = disponible;
         this.gpsDisponible = disponible;
         this.cdr.detectChanges();
       },
@@ -120,12 +146,14 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
     App.addListener("appStateChange", async ({ isActive }) => {
       if (isActive) {
         this.cargarDatos();
-        // Si hay recorrido activo y el GPS se apagó, reanudarlo automáticamente
         if (this.recorridoActivo && !this.gpsService.estaActivo) {
           await this.gpsService.iniciarSeguimiento();
         }
       }
     });
+    
+    // Iniciar escucha de red para sincronización offline
+    this.sincronizarService.iniciarEscuchaRed();
   }
 
   ngOnDestroy() {
@@ -134,6 +162,7 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
     this.gpsDisponibleSub?.unsubscribe();
     this.gpsService.detenerDeteccionEstado();
     this.hitoSub?.unsubscribe();
+    this.sincronizarService.detenerEscuchaRed();
     App.removeAllListeners();
   }
 
@@ -176,12 +205,13 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
 
         // Enriquecer recorrido activo con objetos completos para mostrar nombres
         if (recorrido) {
+          const rec = recorrido as Recorrido & { id: string };
+          this.recorridoActivo = rec;
           this.recorridoActivo.vehiculo =
-            this.vehiculosAsignados.find(
-              (v) => v.id === recorrido.vehiculoId,
-            ) || null;
+            this.vehiculosAsignados.find((v) => v.id === rec.vehiculoId) ||
+            null;
           this.recorridoActivo.ruta =
-            this.rutasAsignadas.find((r) => r.id === recorrido.rutaId) || null;
+            this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null;
         }
 
         this.cargando = false;
@@ -231,12 +261,12 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
       return;
     }
 
-    // RF8/RF9 — Verificar permisos GPS antes de iniciar
     const { otorgado, denegadoPermanente } =
       await this.gpsService.verificarPermisos();
 
     if (!otorgado) {
       this.cerrarModalRecorrido();
+
       if (denegadoPermanente) {
         this.mostrarAlerta(
           "Permiso de ubicación bloqueado. Ve a Ajustes del celular → Aplicaciones → EcoRuta → Permisos → Ubicación y actívalo.",
@@ -267,18 +297,25 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
           this.recorridoActivo = {
             id: idRecorrido,
             choferId,
-            vehiculoId: this.vehiculoSeleccionado!.id,
-            rutaId: this.rutaSeleccionada!.id,
+            vehiculoId: this.vehiculoSeleccionado!.id!,
+            rutaId: this.rutaSeleccionada!.id!,
             vehiculo: this.vehiculoSeleccionado,
             ruta: this.rutaSeleccionada,
             estado: "activo",
             fechaInicio: new Date(),
+            fechaFin: null,
           };
           this.iniciandoRecorrido = false;
           this.cerrarModalRecorrido();
 
-          // RF8/RF9 — Iniciar seguimiento GPS
+          this.gpsIniciando = true;
+
           const gpsIniciado = await this.gpsService.iniciarSeguimiento();
+
+          // Simular tiempo de inicio del GPS para mostrar el estado "Activando GPS..."
+          this.gpsIniciando = false;
+          this.cdr.detectChanges();
+
           if (gpsIniciado) {
             this.mostrarAlerta("Recorrido iniciado — GPS activo", "exito");
           } else {
@@ -304,6 +341,7 @@ this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
   }
 
   // Reanudar GPS con recorrido activo
+
   async reanudarGPS() {
     const gpsIniciado = await this.gpsService.iniciarSeguimiento();
     if (gpsIniciado) {
