@@ -251,19 +251,60 @@ export class ApiService {
   // ==================== RECORRIDOS ====================
   obtenerRecorridoActivo(choferId: string): Observable<any> {
     const recorridosCollection = collection(firebaseDB, "recorridos");
-    const q = query(
+
+    const qActivo = query(
       recorridosCollection,
       where("choferId", "==", choferId),
       where("estado", "==", "activo"),
     );
+    const qSuspendido = query(
+      recorridosCollection,
+      where("choferId", "==", choferId),
+      where("estado", "==", "suspendido"),
+    );
 
-    return from(getDocs(q)).pipe(
-      map((snapshot) => {
-        if (snapshot.empty) return null;
-        const d = snapshot.docs[0];
-        return { id: d.id, ...d.data() };
+    return from(Promise.all([getDocs(qActivo), getDocs(qSuspendido)])).pipe(
+      map(([snapActivo, snapSuspendido]) => {
+        if (!snapActivo.empty) {
+          const d = snapActivo.docs[0];
+          return { id: d.id, ...d.data() };
+        }
+        if (!snapSuspendido.empty) {
+          const d = snapSuspendido.docs[0];
+          return { id: d.id, ...d.data() };
+        }
+        return null;
       }),
     );
+  }
+
+  suspenderRecorrido(recorridoId: string): Observable<void> {
+    const docRef = doc(firebaseDB, "recorridos", recorridoId);
+    return from(
+      updateDoc(docRef, {
+        estado: "suspendido",
+        fechaSuspension: new Date(),
+      }),
+    ).pipe(map(() => void 0));
+  }
+
+  verificarYSuspenderRecorrido(recorrido: any): Observable<boolean> {
+    if (!recorrido?.id || recorrido.estado !== "activo") {
+      return of(false);
+    }
+    const fechaInicio: Date =
+      recorrido.fechaInicio?.toDate?.() ?? new Date(recorrido.fechaInicio);
+    const horasTranscurridas =
+      (new Date().getTime() - fechaInicio.getTime()) / (1000 * 60 * 60);
+
+    /*  Por si quiero motrar el mensaje de 24 horas suspendido en 5 segundos
+      const segundosTranscurridos = (new Date().getTime() - fechaInicio.getTime()) / 1000;
+     if (segundosTranscurridos >= 5) {
+        */
+    if (horasTranscurridas >= 24) {
+      return this.suspenderRecorrido(recorrido.id).pipe(map(() => true));
+    }
+    return of(false);
   }
 
   iniciarRecorrido(
@@ -308,7 +349,8 @@ export class ApiService {
               .post<any>(`${this.urlBase}/recorridos/iniciar`, payload)
               .pipe(
                 switchMap((respuesta) => {
-                  const idApiRecorrido = respuesta?.data?.id ?? null;
+                  const idApiRecorrido =
+                    respuesta?.id ?? respuesta?.data?.id ?? null;
                   return from(updateDoc(docRef, { idApiRecorrido })).pipe(
                     map(() => docRef.id),
                   );
@@ -334,18 +376,33 @@ export class ApiService {
       longitud: posicion.longitud,
       precision: posicion.precision,
       fechaRegistro: new Date(),
-      posicionIdApi: null, // se llenará si la API responde
+      posicionIdApi: null,
     };
 
     return from(addDoc(posicionesCollection, datos)).pipe(
       switchMap((docRef) => {
-        // Obtener el idApiRecorrido desde Firestore
         const recorridoRef = doc(firebaseDB, "recorridos", recorridoId);
         return from(getDoc(recorridoRef)).pipe(
           switchMap((recorridoSnap) => {
             const idApiRecorrido = recorridoSnap.data()?.["idApiRecorrido"];
+            const estado = recorridoSnap.data()?.["estado"];
+
+            // RF29 — Recorrido suspendido: no enviar a la API
+            if (estado === "suspendido") {
+              console.warn(
+                "⛔ Recorrido suspendido — posición no enviada a la API",
+              );
+              this.almacenamientoService.guardarPosicionPendiente(
+                recorridoId,
+                posicion,
+              );
+              return of(null);
+            }
             if (!idApiRecorrido) {
-              // Sin id de API, guardamos solo en Firestore
+              this.almacenamientoService.guardarPosicionPendiente(
+                recorridoId,
+                posicion,
+              );
               return of(null);
             }
             const payload = {
@@ -360,17 +417,14 @@ export class ApiService {
               )
               .pipe(
                 switchMap((respuesta) => {
-                  const posicionIdApi = respuesta?.data?.id ?? null;
+                  const posicionIdApi =
+                    respuesta?.id ?? respuesta?.data?.id ?? null;
                   return from(updateDoc(docRef, { posicionIdApi })).pipe(
                     map(() => posicionIdApi as string | null),
                   );
                 }),
                 catchError((err) => {
-                  console.warn(
-                    "API profe no disponible al guardar posición:",
-                    err,
-                  );
-                  // RF19/RF20 — guardar local para sincronizar después
+                  console.warn("API no disponible al guardar posición:", err);
                   this.almacenamientoService.guardarPosicionPendiente(
                     recorridoId,
                     posicion,
@@ -402,10 +456,9 @@ export class ApiService {
 
         // Llamar API del profe y luego actualizar Firestore
         return this.http
-          .post<any>(
-            `${this.urlBase}/recorridos/${idApiRecorrido}/finalizar`,
-            {},
-          )
+          .post<any>(`${this.urlBase}/recorridos/${idApiRecorrido}/finalizar`, {
+            perfil_id: this.PERFIL_ID,
+          })
           .pipe(
             switchMap(() => actualizarFirestore),
             catchError((err) => {
@@ -452,6 +505,57 @@ export class ApiService {
 
   // ==================== EVIDENCIAS ====================
 
+  private enviarPosicionEImagen(
+    idApiRecorrido: string,
+    posicion: PosicionGPS,
+    imagenBase64: string,
+  ): Observable<void> {
+    console.log("🖼️ Primeros chars base64:", imagenBase64.substring(0, 50));
+    console.log("🖼️ Tamaño base64:", imagenBase64.length);
+    const payloadPos = {
+      lat: posicion.latitud,
+      lon: posicion.longitud,
+      perfil_id: this.PERFIL_ID,
+    };
+
+    return this.http
+      .post<any>(
+        `${this.urlBase}/recorridos/${idApiRecorrido}/posiciones`,
+        payloadPos,
+      )
+      .pipe(
+        switchMap((respuestaPos) => {
+          const posicionId = respuestaPos?.id ?? respuestaPos?.data?.id ?? null;
+
+          if (!posicionId) {
+            console.warn("⚠️ No se obtuvo posicionId — imagen no se sube");
+            return of(void 0);
+          }
+
+          return this.http
+            .post<any>(
+              `${this.urlBase}/recorridos/posiciones/${posicionId}/imagen`,
+              { imagen_base64: imagenBase64 },
+            )
+            .pipe(
+              map(() => void 0),
+              catchError((err) => {
+                console.warn("❌ Error subiendo imagen status:", err?.status);
+                console.warn(
+                  "❌ Error subiendo imagen mensaje:",
+                  JSON.stringify(err?.error),
+                );
+                return of(void 0);
+              }),
+            );
+        }),
+        catchError((err) => {
+          console.warn("❌ Error registrando posición para evidencia:", err);
+          return of(void 0);
+        }),
+      );
+  }
+
   guardarEvidencia(
     recorridoId: string,
     imagenBase64: string,
@@ -467,79 +571,50 @@ export class ApiService {
     };
 
     return from(addDoc(evidenciasCollection, datos)).pipe(
-      switchMap((docRef) => {
-        console.log("📦 Evidencia guardada en Firestore, id:", docRef.id);
-
+      switchMap(() => {
         const recorridoRef = doc(firebaseDB, "recorridos", recorridoId);
-        return from(getDoc(recorridoRef)).pipe(
-          switchMap((recorridoSnap) => {
-            const idApiRecorrido = recorridoSnap.data()?.["idApiRecorrido"];
-            console.log("🔑 idApiRecorrido encontrado:", idApiRecorrido);
 
-            if (!idApiRecorrido || !posicion) {
-              console.warn(
-                "⚠️ Sin idApiRecorrido o posición — solo se guardó en Firestore",
+        const intentarEnvio = (intento: number): Observable<void> =>
+          from(getDoc(recorridoRef)).pipe(
+            switchMap((recorridoSnap) => {
+              const idApiRecorrido = recorridoSnap.data()?.["idApiRecorrido"];
+              const estado = recorridoSnap.data()?.["estado"];
+
+              // RF29 — Recorrido suspendido: no enviar a la API
+              if (estado === "suspendido") {
+                console.warn(
+                  "⛔ Recorrido suspendido — evidencia no enviada a la API",
+                );
+                return of(void 0);
+              }
+
+              if (!idApiRecorrido) {
+                if (intento < 3) {
+                  // Reintentar hasta 3 veces con 3s de espera
+                  return from(
+                    new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+                  ).pipe(switchMap(() => intentarEnvio(intento + 1)));
+                }
+                console.warn(
+                  "⚠️ idApiRecorrido no llegó tras reintentos — solo Firestore",
+                );
+                return of(void 0);
+              }
+
+              if (!posicion) {
+                console.warn("⚠️ Sin posición — solo Firestore");
+                return of(void 0);
+              }
+
+              return this.enviarPosicionEImagen(
+                idApiRecorrido,
+                posicion,
+                imagenBase64,
               );
-              return of(void 0);
-            }
+            }),
+          );
 
-            const payloadPos = {
-              lat: posicion.latitud,
-              lon: posicion.longitud,
-              perfil_id: this.PERFIL_ID,
-            };
-            console.log("📡 Enviando posición a API profe:", payloadPos);
-
-            return this.http
-              .post<any>(
-                `${this.urlBase}/recorridos/${idApiRecorrido}/posiciones`,
-                payloadPos,
-              )
-              .pipe(
-                switchMap((respuestaPos) => {
-                  console.log(
-                    "✅ Posición registrada en API profe:",
-                    respuestaPos,
-                  );
-                  const posicionId = respuestaPos?.data?.id;
-                  console.log("🔑 posicionId para imagen:", posicionId);
-
-                  if (!posicionId) {
-                    console.warn(
-                      "⚠️ No se obtuvo posicionId — imagen no se sube",
-                    );
-                    return of(void 0);
-                  }
-
-                  const payloadImg = { imagen_base64: imagenBase64 };
-                  console.log("🖼️ Subiendo imagen a posición:", posicionId);
-
-                  return this.http
-                    .post<any>(
-                      `${this.urlBase}/recorridos/posiciones/${posicionId}/imagen`,
-                      payloadImg,
-                    )
-                    .pipe(
-                      map((r) => {
-                        console.log("✅ Imagen subida correctamente:", r);
-                        return void 0;
-                      }),
-                      catchError((err) => {
-                        console.warn("❌ Error subiendo imagen a API:", err);
-                        return of(void 0);
-                      }),
-                    );
-                }),
-                catchError((err) => {
-                  console.warn(
-                    "❌ Error registrando posición para evidencia en API:",
-                    err,
-                  );
-                  return of(void 0);
-                }),
-              );
-          }),
-        );
+        return intentarEnvio(1);
       }),
       map(() => void 0),
     );
