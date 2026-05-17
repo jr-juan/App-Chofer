@@ -216,100 +216,77 @@
   </div>
 
   <!-- Vehículos -->
-  <div class="seccion-vehiculos">
-    <h3>Mis Vehículos Asignados</h3>
-    <div *ngIf="cargando" class="loading">
-      <ion-spinner name="crescent"></ion-spinner>
-      <p>Cargando vehículos...</p>
-    </div>
-    <div
-      *ngIf="!cargando && vehiculosAsignados.length > 0"
-      class="grid-vehiculos"
-    >
-      <div class="tarjeta-vehiculo" *ngFor="let vehiculo of vehiculosAsignados">
-        <div class="vehiculo-header">
-          <h4>{{ vehiculo.placa }}</h4>
-          <span
-            class="badge"
-            [class.activo]="vehiculo.activo"
-            [class.inactivo]="!vehiculo.activo"
-          >
-            {{ vehiculo.activo ? 'Activo' : 'Inactivo' }}
-          </span>
-        </div>
-        <div class="vehiculo-detalles">
-          <p><strong>Marca:</strong> {{ vehiculo.marca }}</p>
-          <p><strong>Modelo:</strong> {{ vehiculo.modelo }}</p>
-        </div>
-        <div class="vehiculo-acciones">
-          <button class="btn-detalle" disabled>
-            <ion-icon name="map-outline"></ion-icon> Ver Rutas en Mapa
-            (Próximamente)
-          </button>
-        </div>
+<div class="seccion-vehiculos">
+  <h3>Mis Vehículos Asignados</h3>
+  <div *ngIf="cargando" class="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando vehículos...</p>
+  </div>
+  <div *ngIf="!cargando && vehiculosAsignados.length > 0" class="grid-vehiculos">
+    <div class="tarjeta-vehiculo" *ngFor="let vehiculo of vehiculosAsignados">
+      <div class="vehiculo-header">
+        <h4>{{ vehiculo.placa }}</h4>
+        <span class="badge" [class.activo]="vehiculo.activo" [class.inactivo]="!vehiculo.activo">
+          {{ vehiculo.activo ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <div class="vehiculo-detalles">
+        <p><strong>Marca:</strong> {{ vehiculo.marca }}</p>
+        <p><strong>Modelo:</strong> {{ vehiculo.modelo }}</p>
       </div>
     </div>
-    <div
-      *ngIf="!cargando && vehiculosAsignados.length === 0"
-      class="sin-vehiculos"
-    >
-      <ion-icon
-        name="car-outline"
-        style="font-size: 40px; color: #bdc3c7"
-      ></ion-icon>
-      <p>No tienes vehículos asignados</p>
-      <p class="texto-secundario">
-        Contacta al administrador para que te asigne un vehículo.
-      </p>
-    </div>
   </div>
+  <div *ngIf="!cargando && vehiculosAsignados.length === 0" class="sin-vehiculos">
+    <ion-icon name="car-outline" style="font-size: 40px; color: #bdc3c7"></ion-icon>
+    <p>No tienes vehículos asignados</p>
+    <p class="texto-secundario">Contacta al administrador para que te asigne un vehículo.</p>
+  </div>
+</div>
 
   <!-- Rutas -->
-  <div class="seccion-vehiculos">
-    <h3>Mis Rutas Asignadas</h3>
-    <div *ngIf="cargando" class="loading">
-      <ion-spinner name="crescent"></ion-spinner>
-      <p>Cargando rutas...</p>
-    </div>
-    <div *ngIf="!cargando && rutasAsignadas.length > 0" class="grid-vehiculos">
-      <div class="tarjeta-vehiculo" *ngFor="let ruta of rutasAsignadas">
-        <div class="vehiculo-header">
-          <h4>{{ ruta.nombre_ruta }}</h4>
-          <span
-            [style.background]="ruta.color_hex"
-            style="
-              width: 14px;
-              height: 14px;
-              border-radius: 50%;
-              display: inline-block;
-            "
-          ></span>
-        </div>
-        <div class="vehiculo-acciones">
-          <button
-            class="btn-detalle"
-            [disabled]="!!recorridoActivo"
-            (click)="abrirModalRecorrido()"
-          >
-            <ion-icon
-              [name]="recorridoActivo ? 'time' : 'play-circle'"
-            ></ion-icon>
-            {{ recorridoActivo ? 'Recorrido en curso' : 'Iniciar Recorrido' }}
-          </button>
-        </div>
+<div class="seccion-vehiculos">
+  <h3>Mis Rutas Asignadas</h3>
+  <div *ngIf="cargando" class="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando rutas...</p>
+  </div>
+  <div *ngIf="!cargando && rutasAsignadas.length > 0" class="grid-vehiculos">
+    <div class="tarjeta-vehiculo" *ngFor="let ruta of rutasAsignadas">
+      <div class="vehiculo-header">
+        <h4>{{ ruta.nombre_ruta }}</h4>
+        <span
+          [style.background]="ruta.color_hex"
+          style="width: 14px; height: 14px; border-radius: 50%; display: inline-block;">
+        </span>
+      </div>
+      <div class="vehiculo-acciones">
+        <button class="btn-detalle" disabled>
+          <ion-icon name="map-outline"></ion-icon> Ver en Mapa (Próximamente)
+        </button>
       </div>
     </div>
-    <div *ngIf="!cargando && rutasAsignadas.length === 0" class="sin-vehiculos">
-      <ion-icon
-        name="map-outline"
-        style="font-size: 40px; color: #bdc3c7"
-      ></ion-icon>
-      <p>No tienes rutas asignadas</p>
-      <p class="texto-secundario">
-        Contacta al administrador para que te asigne una ruta.
-      </p>
-    </div>
   </div>
+  <div *ngIf="!cargando && rutasAsignadas.length === 0" class="sin-vehiculos">
+    <ion-icon name="map-outline" style="font-size: 40px; color: #bdc3c7"></ion-icon>
+    <p>No tienes rutas asignadas</p>
+    <p class="texto-secundario">Contacta al administrador para que te asigne una ruta.</p>
+  </div>
+</div>
+
+<!-- Iniciar Recorrido -->
+<div class="seccion-vehiculos">
+  <button
+    class="btn-iniciar-recorrido"
+    [disabled]="!!recorridoActivo || rutasAsignadas.length === 0 || vehiculosAsignados.length === 0"
+    (click)="abrirModalRecorrido()"
+  >
+    <ion-icon [name]="recorridoActivo ? 'time' : 'play-circle'"></ion-icon>
+    <span *ngIf="!recorridoActivo">Iniciar Recorrido</span>
+    <span *ngIf="recorridoActivo && !recorridoSuspendido">Recorrido en curso</span>
+    <span *ngIf="recorridoSuspendido">Recorrido suspendido</span>
+  </button>
+</div>
+
 </ion-content>
 
 <!-- Modal Notificación -->
