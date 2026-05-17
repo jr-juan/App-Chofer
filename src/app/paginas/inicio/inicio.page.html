@@ -53,37 +53,61 @@
     <div
       class="gps-card"
       [class.gps-activo]="gpsActivo"
-      [class.gps-habilitado]="!gpsActivo && gpsDisponible"
-      [class.gps-inactivo]="!gpsActivo && !gpsDisponible"
+      [class.gps-habilitado]="!gpsActivo && gpsDisponible && !gpsIniciando"
+      [class.gps-inactivo]="!gpsActivo && !gpsDisponible && !gpsIniciando"
     >
       <div class="gps-header">
-        <span class="gps-dot"></span>
-        <strong
-          >{{ gpsActivo ? 'GPS Activo' : (gpsDisponible ? 'GPS Habilitado' :
-          'GPS Inactivo') }}</strong
-        >
-        <ion-button
-          *ngIf="gpsActivo"
-          color="danger"
-          size="small"
-          fill="outline"
-          (click)="detenerGPS()"
-        >
-          Detener GPS
-        </ion-button>
+        <!-- CARGANDO -->
+        <ng-container *ngIf="gpsIniciando">
+          <ion-spinner
+            name="crescent"
+            style="width: 18px; height: 18px"
+          ></ion-spinner>
+          <strong>Activando GPS...</strong>
+        </ng-container>
 
-        <ion-button
-          *ngIf="!gpsActivo && recorridoActivo"
-          color="primary"
-          size="small"
-          fill="outline"
-          (click)="reanudarGPS()"
-        >
-          <ion-icon name="navigate" slot="start"></ion-icon>
-          Reanudar GPS
-        </ion-button>
+        <!-- ACTIVO -->
+        <ng-container *ngIf="!gpsIniciando && gpsActivo">
+          <span class="gps-dot"></span>
+          <strong>GPS Activo</strong>
+          <ion-button
+            color="danger"
+            size="small"
+            fill="outline"
+            (click)="detenerGPS()"
+          >
+            Detener GPS
+          </ion-button>
+        </ng-container>
+
+        <!-- HABILITADO pero no activo -->
+        <ng-container *ngIf="!gpsIniciando && !gpsActivo && gpsDisponible">
+          <span class="gps-dot"></span>
+          <strong>GPS Habilitado</strong>
+          <ion-button
+            *ngIf="recorridoActivo"
+            color="primary"
+            size="small"
+            fill="outline"
+            (click)="reanudarGPS()"
+          >
+            <ion-icon name="navigate" slot="start"></ion-icon>
+            Reanudar GPS
+          </ion-button>
+        </ng-container>
+
+        <!-- INACTIVO -->
+        <ng-container *ngIf="!gpsIniciando && !gpsActivo && !gpsDisponible">
+          <span class="gps-dot"></span>
+          <strong>GPS Inactivo</strong>
+        </ng-container>
       </div>
-      <div *ngIf="gpsActivo && posicionActual" class="gps-coords">
+
+      <!-- Coords -->
+      <div
+        *ngIf="gpsActivo && posicionActual && !gpsIniciando"
+        class="gps-coords"
+      >
         <span
           ><ion-icon name="location"></ion-icon> Lat: {{ posicionActual.latitud
           | number:'1.5-5' }}</span
@@ -94,17 +118,30 @@
           posicionActual.precision | number:'1.0-0' }}m</span
         >
       </div>
-      <p *ngIf="gpsActivo && !posicionActual" class="gps-buscando">
+
+      <p
+        *ngIf="gpsActivo && !posicionActual && !gpsIniciando"
+        class="gps-buscando"
+      >
         Buscando señal GPS...
       </p>
-      <div *ngIf="!gpsActivo && !gpsDisponible" class="gps-aviso">
+
+      <div
+        *ngIf="!gpsActivo && !gpsDisponible && !gpsIniciando"
+        class="gps-aviso"
+      >
         <ion-icon name="warning"></ion-icon>
         Activa la ubicación del celular para poder iniciar recorridos.
       </div>
-      <div *ngIf="gpsDisponible" class="gps-listo">
+
+      <div
+        *ngIf="!gpsActivo && gpsDisponible && !gpsIniciando"
+        class="gps-listo"
+      >
         <ion-icon name="checkmark-circle"></ion-icon>
         Ya puede iniciar los recorridos.
       </div>
+      
     </div>
   </div>
 
@@ -125,7 +162,10 @@
           || recorridoActivo.rutaId }}</span
         >
         <span
-          ><ion-icon name="time"></ion-icon> {{ (recorridoActivo.fechaInicio?.toDate ? recorridoActivo.fechaInicio.toDate() : recorridoActivo.fechaInicio) | date:'shortTime' }}</span
+          ><ion-icon name="time"></ion-icon> {{
+          (recorridoActivo.fechaInicio?.toDate ?
+          recorridoActivo.fechaInicio.toDate() : recorridoActivo.fechaInicio) |
+          date:'shortTime' }}</span
         >
       </div>
 
