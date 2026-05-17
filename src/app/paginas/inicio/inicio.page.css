@@ -416,3 +416,48 @@ ion-content {
   justify-content: center;
   gap: 6px;
 }
+
+
+/*--
+   RF28 — Card de recorrido suspendido
+   --*/
+
+/* Card suspendida — borde naranja, fondo cálido */
+.recorrido-card.recorrido-suspendido {
+  border: 2px solid #f57c00;
+  background: #fff8f0;
+}
+
+/* Ícono de advertencia naranja en el header */
+.icono-suspendido {
+  color: #f57c00;
+  font-size: 20px;
+  margin-right: 6px;
+}
+
+/* Bloque de aviso dentro de la card */
+.suspendido-aviso {
+  background: #fff3e0;
+  border-left: 4px solid #f57c00;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 10px 0;
+  font-size: 13px;
+  color: #5d3a00;
+  line-height: 1.5;
+}
+
+.suspendido-aviso p {
+  margin: 0 0 6px 0;
+}
+
+.suspendido-aviso p:last-child {
+  margin-bottom: 0;
+}
+
+/* 
+   RF28 — Notificación tipo advertencia
+*/
+.notif-advertencia {
+  border-top: 4px solid #f57c00;
+}
