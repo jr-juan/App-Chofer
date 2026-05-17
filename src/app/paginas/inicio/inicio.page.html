@@ -141,12 +141,50 @@
         <ion-icon name="checkmark-circle"></ion-icon>
         Ya puede iniciar los recorridos.
       </div>
-      
     </div>
   </div>
 
-  <!-- Recorrido activo -->
-  <div class="seccion-gps" *ngIf="recorridoActivo">
+  <!-- RF28 — Recorrido SUSPENDIDO -->
+  <div class="seccion-gps" *ngIf="recorridoActivo && recorridoSuspendido">
+    <div class="recorrido-card recorrido-suspendido">
+      <div class="gps-header">
+        <ion-icon name="warning" class="icono-suspendido"></ion-icon>
+        <strong>Recorrido Suspendido</strong>
+      </div>
+      <div class="suspendido-aviso">
+        <p>
+          Este recorrido superó el límite de
+          <strong>24 horas</strong> permitidas y fue suspendido automáticamente.
+        </p>
+        <p>
+          No se están enviando posiciones, evidencias ni hitos. Contacta al
+          administrador.
+        </p>
+      </div>
+      <div class="gps-coords">
+        <span
+          ><ion-icon name="car"></ion-icon> {{ recorridoActivo.vehiculo?.placa
+          || recorridoActivo.vehiculoId }}</span
+        >
+        <span
+          ><ion-icon name="map"></ion-icon> {{ recorridoActivo.ruta?.nombre_ruta
+          || recorridoActivo.rutaId }}</span
+        >
+        <span
+          ><ion-icon name="time"></ion-icon> {{
+          (recorridoActivo.fechaInicio?.toDate ?
+          recorridoActivo.fechaInicio.toDate() : recorridoActivo.fechaInicio) |
+          date:'short' }}</span
+        >
+      </div>
+      <button class="btn-detener" (click)="finalizarRecorrido()">
+        <ion-icon name="stop-circle"></ion-icon> Finalizar Recorrido
+      </button>
+    </div>
+  </div>
+
+  <!-- Recorrido ACTIVO -->
+  <div class="seccion-gps" *ngIf="recorridoActivo && !recorridoSuspendido">
     <div class="recorrido-card">
       <div class="gps-header">
         <span class="recorrido-dot"></span>
@@ -168,11 +206,9 @@
           date:'shortTime' }}</span
         >
       </div>
-
       <button class="btn-evidencia" (click)="capturarEvidencia()">
         <ion-icon name="camera"></ion-icon> Capturar Evidencia
       </button>
-
       <button class="btn-detener" (click)="finalizarRecorrido()">
         <ion-icon name="stop-circle"></ion-icon> Finalizar Recorrido
       </button>
@@ -287,12 +323,23 @@
     [class.notif-exito]="notificacionTipo === 'exito'"
     [class.notif-error]="notificacionTipo === 'error'"
     [class.notif-info]="notificacionTipo === 'info'"
+    [class.notif-advertencia]="notificacionTipo === 'advertencia'"
     (click)="$event.stopPropagation()"
   >
     <div class="notif-icono">
       <ion-icon
-        [name]="notificacionTipo === 'exito' ? 'checkmark-circle' : notificacionTipo === 'error' ? 'close-circle' : 'information-circle'"
-        [style.color]="notificacionTipo === 'exito' ? '#43a047' : notificacionTipo === 'error' ? '#e53935' : '#1e88e5'"
+        [name]="
+  notificacionTipo === 'exito' ? 'checkmark-circle' :
+  notificacionTipo === 'error' ? 'close-circle' :
+  notificacionTipo === 'advertencia' ? 'warning' :
+  'information-circle'
+"
+        [style.color]="
+  notificacionTipo === 'exito' ? '#43a047' :
+  notificacionTipo === 'error' ? '#e53935' :
+  notificacionTipo === 'advertencia' ? '#f57c00' :
+  '#1e88e5'
+"
       >
       </ion-icon>
     </div>
