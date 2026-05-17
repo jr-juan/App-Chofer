@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable, from, of, throwError } from "rxjs";
-import { map, switchMap, catchError } from "rxjs/operators";
+import { map, switchMap, catchError, tap } from "rxjs/operators";
 import {
   environmentApi,
   environmentPerfilId,
@@ -509,9 +509,10 @@ export class ApiService {
     idApiRecorrido: string,
     posicion: PosicionGPS,
     imagenBase64: string,
+    evidenciaDocId: string,
   ): Observable<void> {
-    console.log("🖼️ Primeros chars base64:", imagenBase64.substring(0, 50));
-    console.log("🖼️ Tamaño base64:", imagenBase64.length);
+  
+
     const payloadPos = {
       lat: posicion.latitud,
       lon: posicion.longitud,
@@ -538,6 +539,23 @@ export class ApiService {
               { imagen_base64: imagenBase64 },
             )
             .pipe(
+              tap((respuesta) => {
+                console.log(
+                  "✅ Imagen subida correctamente:",
+                  JSON.stringify(respuesta),
+                );
+              }),
+              switchMap(() => {
+                // Actualizar posicionIdApi en Firestore
+                const evidenciaRef = doc(
+                  firebaseDB,
+                  "evidencias",
+                  evidenciaDocId,
+                );
+                return from(
+                  updateDoc(evidenciaRef, { posicionIdApi: posicionId }),
+                );
+              }),
               map(() => void 0),
               catchError((err) => {
                 console.warn("❌ Error subiendo imagen status:", err?.status);
@@ -568,10 +586,11 @@ export class ApiService {
       latitud: posicion?.latitud ?? null,
       longitud: posicion?.longitud ?? null,
       fechaRegistro: new Date(),
+      posicionIdApi: null,
     };
 
     return from(addDoc(evidenciasCollection, datos)).pipe(
-      switchMap(() => {
+      switchMap((docRef) => {
         const recorridoRef = doc(firebaseDB, "recorridos", recorridoId);
 
         const intentarEnvio = (intento: number): Observable<void> =>
@@ -580,7 +599,6 @@ export class ApiService {
               const idApiRecorrido = recorridoSnap.data()?.["idApiRecorrido"];
               const estado = recorridoSnap.data()?.["estado"];
 
-              // RF29 — Recorrido suspendido: no enviar a la API
               if (estado === "suspendido") {
                 console.warn(
                   "⛔ Recorrido suspendido — evidencia no enviada a la API",
@@ -590,7 +608,6 @@ export class ApiService {
 
               if (!idApiRecorrido) {
                 if (intento < 3) {
-                  // Reintentar hasta 3 veces con 3s de espera
                   return from(
                     new Promise<void>((resolve) => setTimeout(resolve, 3000)),
                   ).pipe(switchMap(() => intentarEnvio(intento + 1)));
@@ -610,6 +627,7 @@ export class ApiService {
                 idApiRecorrido,
                 posicion,
                 imagenBase64,
+                docRef.id,
               );
             }),
           );
