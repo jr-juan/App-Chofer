@@ -120,6 +120,17 @@ async obtenerPosicionesPendientes(): Promise<{
   return JSON.parse(resultado.value);
 }
 
+async marcarPosicionComoEnviada(index: number): Promise<void> {
+  const posiciones = await this.obtenerPosicionesPendientes();
+  if (posiciones[index]) {
+    posiciones[index].enviado = true;
+    await Preferences.set({
+      key: this.POSICIONES_KEY,
+      value: JSON.stringify(posiciones)
+    });
+  }
+}
+
 async limpiarPosicionesSincronizadas(): Promise<void> {
   const posiciones = await this.obtenerPosicionesPendientes();
   const pendientes = posiciones.filter(p => !p.enviado);
