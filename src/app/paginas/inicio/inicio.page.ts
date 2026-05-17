@@ -14,7 +14,6 @@ import { CamaraService } from "../../servicios/camara.service";
 import { AlmacenamientoService } from "../../servicios/almacenamiento.service";
 import { SincronizarService } from "../../servicios/sincronizar.service";
 import { App } from "@capacitor/app";
-import { promise } from "protractor";
 
 @Component({
   selector: "app-inicio",
@@ -33,6 +32,8 @@ export class InicioPage implements OnInit, OnDestroy {
   vehiculoSeleccionado: Vehiculo | null = null;
   rutaSeleccionada: Ruta | null = null;
   iniciandoRecorrido = false;
+
+  private guardandoEvidencia = false;
 
   recorridoActivo:
     | (Recorrido & { vehiculo?: Vehiculo | null; ruta?: Ruta | null })
@@ -55,7 +56,7 @@ export class InicioPage implements OnInit, OnDestroy {
 
   // Notificaciones
   mostrarNotificacion = false;
-  notificacionTipo: "exito" | "error" | "info" = "info";
+  notificacionTipo: "exito" | "error" | "info" | "advertencia" = "info";
   notificacionMensaje = "";
 
   constructor(
@@ -65,7 +66,7 @@ export class InicioPage implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private camaraService: CamaraService,
     private almacenamientoService: AlmacenamientoService,
-    private sincronizarService: SincronizarService
+    private sincronizarService: SincronizarService,
   ) {}
 
   // ── RF3 — Ciclo de vida ──
@@ -81,8 +82,10 @@ export class InicioPage implements OnInit, OnDestroy {
     });
 
     // RF14 — Alerta de hito cada 1 km
-    this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
-      if (km !== null && this.recorridoActivo?.id) {
+   this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
+  if (km !== null && this.recorridoActivo?.id) {
+    // RF29 — No registrar hitos si está suspendido
+    if (this.recorridoActivo.estado === "suspendido") return;
         this.mostrarAlerta(
           `¡Hito alcanzado! Llevas ${km} km en la ruta ${this.recorridoActivo.ruta?.nombre_ruta || this.recorridoActivo.rutaId}.`,
           "info",
@@ -113,7 +116,8 @@ export class InicioPage implements OnInit, OnDestroy {
       this.posicionActual = pos;
       this.cdr.detectChanges();
 
-      if (pos && this.recorridoActivo?.id) {
+      
+if (pos && this.recorridoActivo?.id && this.recorridoActivo.estado !== "suspendido") {
         this.apiService
           .guardarPosicionGPS(this.recorridoActivo.id, pos)
           .subscribe({
@@ -145,13 +149,16 @@ export class InicioPage implements OnInit, OnDestroy {
     // Recargar datos cuando la app vuelve al foco (ej: después de cámara)
     App.addListener("appStateChange", async ({ isActive }) => {
       if (isActive) {
-        this.cargarDatos();
-        if (this.recorridoActivo && !this.gpsService.estaActivo) {
+        if (!this.guardandoEvidencia) {
+          this.cargarDatos();
+        }
+        
+if (this.recorridoActivo && this.recorridoActivo.estado !== "suspendido" && !this.gpsService.estaActivo) {
           await this.gpsService.iniciarSeguimiento();
         }
       }
     });
-    
+
     // Iniciar escucha de red para sincronización offline
     this.sincronizarService.iniciarEscuchaRed();
   }
@@ -168,11 +175,18 @@ export class InicioPage implements OnInit, OnDestroy {
 
   // ── Notificaciones ──
 
-  mostrarAlerta(mensaje: string, tipo: "exito" | "error" | "info" = "info") {
+mostrarAlerta(
+  mensaje: string,
+  tipo: "exito" | "error" | "info" | "advertencia" = "info",
+) {
     this.notificacionMensaje = mensaje;
     this.notificacionTipo = tipo;
     this.mostrarNotificacion = true;
   }
+
+  get recorridoSuspendido(): boolean {
+  return this.recorridoActivo?.estado === "suspendido";
+}
 
   cerrarNotificacion() {
     this.mostrarNotificacion = false;
@@ -201,20 +215,43 @@ export class InicioPage implements OnInit, OnDestroy {
           (v) => v.activo,
         ).length;
         this.rutasAsignadas = rutas.data || [];
-        this.recorridoActivo = recorrido;
 
-        // Enriquecer recorrido activo con objetos completos para mostrar nombres
+        // No sobreescribir recorridoActivo si hay evidencia guardándose
         if (recorrido) {
-          const rec = recorrido as Recorrido & { id: string };
-          this.recorridoActivo = rec;
-          this.recorridoActivo.vehiculo =
-            this.vehiculosAsignados.find((v) => v.id === rec.vehiculoId) ||
-            null;
-          this.recorridoActivo.ruta =
-            this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null;
-        }
+  const rec = recorrido as Recorrido & { id: string };
 
-        this.cargando = false;
+  this.apiService.verificarYSuspenderRecorrido(rec).subscribe({
+    next: (fueSuspendido) => {
+      if (fueSuspendido) {
+        rec.estado = "suspendido";
+        this.gpsService.detenerSeguimiento();
+        this.mostrarAlerta(
+          "Tu recorrido ha sido suspendido por superar las 24 horas permitidas. No se enviarán más datos. ",
+          "advertencia",
+        );
+      }
+      this.recorridoActivo = {
+        ...rec,
+        vehiculo: this.vehiculosAsignados.find((v) => v.id === rec.vehiculoId) || null,
+        ruta: this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null,
+      };
+      this.cargando = false;
+      this.cdr.detectChanges();
+    },
+    error: () => {
+      this.recorridoActivo = {
+        ...rec,
+        vehiculo: this.vehiculosAsignados.find((v) => v.id === rec.vehiculoId) || null,
+        ruta: this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null,
+      };
+      this.cargando = false;
+      this.cdr.detectChanges();
+    },
+  });
+} else {
+  this.recorridoActivo = null;
+  this.cargando = false;
+}
       },
       error: (err) => {
         console.error("Error cargando datos:", err);
@@ -342,17 +379,24 @@ export class InicioPage implements OnInit, OnDestroy {
 
   // Reanudar GPS con recorrido activo
 
-  async reanudarGPS() {
-    const gpsIniciado = await this.gpsService.iniciarSeguimiento();
-    if (gpsIniciado) {
-      this.mostrarAlerta("GPS reanudado correctamente.", "exito");
-    } else {
-      this.mostrarAlerta(
-        "No se pudo reanudar el GPS. Verifica los permisos.",
-        "error",
-      );
-    }
+ async reanudarGPS() {
+  if (this.recorridoSuspendido) {
+    this.mostrarAlerta(
+      "No puedes reanudar el GPS en un recorrido suspendido.",
+      "advertencia",
+    );
+    return;
   }
+  const gpsIniciado = await this.gpsService.iniciarSeguimiento();
+  if (gpsIniciado) {
+    this.mostrarAlerta("GPS reanudado correctamente.", "exito");
+  } else {
+    this.mostrarAlerta(
+      "No se pudo reanudar el GPS. Verifica los permisos.",
+      "error",
+    );
+  }
+}
 
   // ─ RF26 — Finalizar recorrido manualmente + detener GPS ─
 
@@ -373,51 +417,82 @@ export class InicioPage implements OnInit, OnDestroy {
   }
 
   // RF15 — Captura de evidencia fotográfica
-  async capturarEvidencia() {
-    if (!this.recorridoActivo?.id) {
-      this.mostrarAlerta(
-        "Debes tener un recorrido activo para capturar evidencia.",
-        "info",
-      );
-      return;
-    }
+ async capturarEvidencia() {
+  if (this.guardandoEvidencia) return;
 
-    let base64: string | null = null;
-    try {
-      base64 = await this.camaraService.tomarFoto();
-    } catch (err) {
-      console.error("Error cámara:", err);
-      this.mostrarAlerta("Error al abrir la cámara.", "error");
-      return;
-    }
+  // RF29 — Bloquear si está suspendido
+  if (this.recorridoSuspendido) {
+    this.mostrarAlerta(
+      "No puedes capturar evidencia en un recorrido suspendido.",
+      "advertencia",
+    );
+    return;
+  }
 
-    if (!base64) {
-      this.mostrarAlerta("No se pudo capturar la foto.", "error");
-      return;
-    }
+  const recorridoId = this.recorridoActivo?.id;
 
-    // Guardar local (offline)
+  if (!recorridoId) {
+    this.mostrarAlerta(
+      "Debes tener un recorrido activo para capturar evidencia.",
+      "info",
+    );
+    return;
+  }
+
+  this.guardandoEvidencia = true;
+
+  let base64: string | null = null;
+  try {
+    base64 = await this.camaraService.tomarFoto();
+  } catch (err) {
+    console.error("Error cámara:", err);
+    this.mostrarAlerta("Error al abrir la cámara.", "error");
+    this.guardandoEvidencia = false;
+    return;
+  }
+
+  if (!base64) {
+    this.mostrarAlerta("No se pudo capturar la foto.", "error");
+    this.guardandoEvidencia = false;
+    return;
+  }
+
+  const hayConexion = await this.sincronizarService.hayConexion();
+  if (!hayConexion) {
     await this.almacenamientoService.guardarImagenPendiente(
-      this.recorridoActivo.id,
+      recorridoId,
       base64,
     );
+  }
 
-    // Guardar en Firestore
-    this.apiService
-      .guardarEvidencia(this.recorridoActivo.id, base64, this.posicionActual)
-      .subscribe({
-        next: () =>
-          this.mostrarAlerta("Evidencia guardada correctamente.", "exito"),
-        error: (err) => {
-          console.error("Error guardando evidencia en Firestore:", err);
+  this.apiService
+    .guardarEvidencia(recorridoId, base64, this.posicionActual)
+    .subscribe({
+      next: () => {
+        this.guardandoEvidencia = false;
+        this.mostrarAlerta("Evidencia guardada correctamente.", "exito");
+      },
+      error: async (err) => {
+        console.error("Error guardando evidencia:", err);
+        this.guardandoEvidencia = false;
+        if (!hayConexion) {
           this.mostrarAlerta(
             "Conexión inestable — evidencia guardada localmente. Se sincronizará cuando haya señal.",
             "info",
           );
-        },
-      });
-  }
-
+        } else {
+          await this.almacenamientoService.guardarImagenPendiente(
+            recorridoId,
+            base64!,
+          );
+          this.mostrarAlerta(
+            "Error al guardar evidencia — guardada localmente.",
+            "info",
+          );
+        }
+      },
+    });
+}
   // ── Sesión ──
 
   cerrarSesion() {
