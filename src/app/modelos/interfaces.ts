@@ -4,6 +4,8 @@ export interface Ruta {
   nombre_ruta: string;
   color_hex?: string;
   shape?: string;
+  choferAsignado?: string | null;
+  idApiLucio?: string | null;
 }
 
 export interface CrearRuta {
@@ -22,6 +24,7 @@ export interface Vehiculo {
   modelo: string | null;
   activo: boolean;
   choferAsignado?: string | null;
+  idApiLucio?: string | null;
 }
 
 export interface Calle {
@@ -41,9 +44,10 @@ export interface Recorrido {
   choferId: string;
   vehiculoId: string;
   rutaId: string;
-  estado: 'activo' | 'suspendido' | 'finalizado';
+  estado: "activo" | "suspendido" | "finalizado";
   fechaInicio: any;
   fechaFin: any;
+  idApiRecorrido?: string | null;
 }
 
 export interface PosicionGPS {
@@ -59,6 +63,6 @@ export interface Hito {
   latitud: number;
   longitud: number;
   fechaRegistro: Date;
-  imagenBase64: string;   // RF17 — viene de Jazmin también
-  enviado: boolean;       // para modo offline (RF21/RF22)
+  imagenBase64: string; // RF17 — viene de Jazmin también
+  enviado: boolean; // para modo offline (RF21/RF22)
 }
