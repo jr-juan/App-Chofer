@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
-import { Hito } from '../modelos/interfaces';
+import { Hito, PosicionGPS } from '../modelos/interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +9,9 @@ export class AlmacenamientoService {
 
   private readonly HITOS_KEY = 'hitos_pendientes';
   private readonly IMAGENES_KEY = 'imagenes_pendientes';
+  
+  private readonly POSICIONES_KEY = 'posiciones_pendientes';
+
 
   // ==================== RF21 — HITOS ====================
 
@@ -83,4 +86,46 @@ export class AlmacenamientoService {
       value: JSON.stringify(pendientes)
     });
   }
+
+
+
+// ==================== RF19/RF20 — POSICIONES GPS OFFLINE ====================
+
+async guardarPosicionPendiente(recorridoId: string, posicion: PosicionGPS): Promise<void> {
+  const posiciones = await this.obtenerPosicionesPendientes();
+  posiciones.push({
+    recorridoId,
+    latitud: posicion.latitud,
+    longitud: posicion.longitud,
+    precision: posicion.precision,
+    fechaRegistro: posicion.fechaRegistro ?? new Date(),
+    enviado: false
+  });
+  await Preferences.set({
+    key: this.POSICIONES_KEY,
+    value: JSON.stringify(posiciones)
+  });
+}
+
+async obtenerPosicionesPendientes(): Promise<{
+  recorridoId: string;
+  latitud: number;
+  longitud: number;
+  precision: number;
+  fechaRegistro: Date;
+  enviado: boolean;
+}[]> {
+  const resultado = await Preferences.get({ key: this.POSICIONES_KEY });
+  if (!resultado.value) return [];
+  return JSON.parse(resultado.value);
+}
+
+async limpiarPosicionesSincronizadas(): Promise<void> {
+  const posiciones = await this.obtenerPosicionesPendientes();
+  const pendientes = posiciones.filter(p => !p.enviado);
+  await Preferences.set({
+    key: this.POSICIONES_KEY,
+    value: JSON.stringify(pendientes)
+  });
+}
 }
