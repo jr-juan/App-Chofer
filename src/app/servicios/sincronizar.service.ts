@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Network } from '@capacitor/network';
 import { AlmacenamientoService } from './almacenamiento.service';
 import { ApiService } from './api.service';
+import { doc, getDoc } from 'firebase/firestore';
+import { firebaseDB } from './firebase.config';
 
 @Injectable({
   providedIn: 'root'
@@ -15,10 +17,8 @@ export class SincronizarService {
     private apiService: ApiService
   ) {}
 
-  // ── Iniciar escucha de red ──
   iniciarEscuchaRed(): void {
     Network.addListener('networkStatusChange', async (status) => {
-      console.log(' Red:', status.connected ? 'Conectado' : 'Sin conexión');
       if (status.connected) {
         await this.sincronizarTodo();
       }
@@ -29,17 +29,14 @@ export class SincronizarService {
     Network.removeAllListeners();
   }
 
-  // ── RF23/RF24/RF25 — Sincronización batch ──
   async sincronizarTodo(): Promise<void> {
     if (this.sincronizando) return;
     this.sincronizando = true;
-    console.log('🔄 Iniciando sincronización batch...');
 
     try {
       await this.sincronizarPosiciones();
       await this.sincronizarImagenes();
       await this.sincronizarHitos();
-      console.log('✅ Sincronización completa');
     } catch (err) {
       console.error('❌ Error en sincronización:', err);
     } finally {
@@ -48,72 +45,95 @@ export class SincronizarService {
   }
 
   // ── RF23 — Sincronizar posiciones pendientes ──
-  private async sincronizarPosiciones(): Promise<void> {
-    const posiciones = await this.almacenamientoService.obtenerPosicionesPendientes();
-    const pendientes = posiciones.filter(p => !p.enviado);
+ private async sincronizarPosiciones(): Promise<void> {
+  const posiciones = await this.almacenamientoService.obtenerPosicionesPendientes();
 
-    console.log(`📍 Posiciones pendientes: ${pendientes.length}`);
+  if (posiciones.filter(p => !p.enviado).length === 0) return;
 
-    for (const pos of pendientes) {
-      try {
-        await this.apiService.guardarPosicionGPS(pos.recorridoId, {
-          latitud: pos.latitud,
-          longitud: pos.longitud,
-          precision: pos.precision,
-          fechaRegistro: new Date(pos.fechaRegistro)
-        }).toPromise();
-        pos.enviado = true;
-      } catch (err) {
-        console.warn('❌ Error sincronizando posición:', err);
+  for (let i = 0; i < posiciones.length; i++) {
+    if (posiciones[i].enviado) continue;
+
+    try {
+      const recorridoRef = doc(firebaseDB, 'recorridos', posiciones[i].recorridoId);
+      const recorridoSnap = await getDoc(recorridoRef);
+
+      if (!recorridoSnap.exists() || !recorridoSnap.data()?.['idApiRecorrido']) {
+        console.warn(`⚠️ Recorrido no válido — descartando posición`);
+        await this.almacenamientoService.marcarPosicionComoEnviada(i);
+        continue;
       }
-    }
 
-    await this.almacenamientoService.limpiarPosicionesSincronizadas();
+      await this.apiService.guardarPosicionGPS(posiciones[i].recorridoId, {
+        latitud: posiciones[i].latitud,
+        longitud: posiciones[i].longitud,
+        precision: posiciones[i].precision,
+        fechaRegistro: new Date(posiciones[i].fechaRegistro)
+      }).toPromise();
+
+      await this.almacenamientoService.marcarPosicionComoEnviada(i);
+    } catch (err) {
+      console.warn('❌ Error sincronizando posición:', err);
+    }
   }
+
+  await this.almacenamientoService.limpiarPosicionesSincronizadas();
+}
 
   // ── RF24 — Sincronizar imágenes pendientes ──
-  private async sincronizarImagenes(): Promise<void> {
-    const imagenes = await this.almacenamientoService.obtenerImagenesPendientes();
-    const pendientes = imagenes.filter(i => !i.enviado);
+ private async sincronizarImagenes(): Promise<void> {
+  const imagenes = await this.almacenamientoService.obtenerImagenesPendientes();
+  const pendientes = imagenes.filter(i => !i.enviado);
 
-    console.log(` Imágenes pendientes: ${pendientes.length}`);
+  if (pendientes.length === 0) return;
 
-    for (const img of pendientes) {
-      try {
-        await this.apiService.guardarEvidencia(
-          img.recorridoId,
-          img.imagenBase64,
-          null
-        ).toPromise();
-        img.enviado = true;
-      } catch (err) {
-        console.warn('❌ Error sincronizando imagen:', err);
+  for (let i = 0; i < imagenes.length; i++) {
+    if (imagenes[i].enviado) continue;
+
+    try {
+      const recorridoRef = doc(firebaseDB, 'recorridos', imagenes[i].recorridoId);
+      const recorridoSnap = await getDoc(recorridoRef);
+
+      if (!recorridoSnap.exists() || !recorridoSnap.data()?.['idApiRecorrido']) {
+        console.warn(`⚠️ Recorrido no válido — descartando imagen`);
+        await this.almacenamientoService.marcarImagenComoEnviada(i); 
+        continue;
       }
-    }
 
-    await this.almacenamientoService.limpiarImagenesSincronizadas();
+      await this.apiService.guardarEvidencia(
+        imagenes[i].recorridoId,
+        imagenes[i].imagenBase64,
+        null
+      ).toPromise();
+
+      await this.almacenamientoService.marcarImagenComoEnviada(i); 
+    } catch (err) {
+      console.warn('❌ Error sincronizando imagen:', err);
+    }
   }
+
+  await this.almacenamientoService.limpiarImagenesSincronizadas();
+}
 
   // ── RF25 — Sincronizar hitos pendientes ──
-  private async sincronizarHitos(): Promise<void> {
-    const hitos = await this.almacenamientoService.obtenerHitosPendientes();
-    const pendientes = hitos.filter(h => !h.enviado);
+private async sincronizarHitos(): Promise<void> {
+  const hitos = await this.almacenamientoService.obtenerHitosPendientes();
 
-    console.log(` Hitos pendientes: ${pendientes.length}`);
+  if (hitos.filter(h => !h.enviado).length === 0) return;
 
-    for (const hito of pendientes) {
-      try {
-        await this.apiService.guardarHitoFirestore(hito).toPromise();
-        hito.enviado = true;
-      } catch (err) {
-        console.warn('❌ Error sincronizando hito:', err);
-      }
+  for (let i = 0; i < hitos.length; i++) {
+    if (hitos[i].enviado) continue;
+
+    try {
+      await this.apiService.guardarHitoFirestore(hitos[i]).toPromise();
+      await this.almacenamientoService.marcarHitoComoEnviado(i);
+    } catch (err) {
+      console.warn('❌ Error sincronizando hito:', err);
     }
-
-    await this.almacenamientoService.limpiarHitosSincronizados();
   }
 
-  // ── Verificar conexión actual ──
+  await this.almacenamientoService.limpiarHitosSincronizados();
+}
+
   async hayConexion(): Promise<boolean> {
     const status = await Network.getStatus();
     return status.connected;
