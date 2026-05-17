@@ -9,11 +9,13 @@ export class CamaraService {
   async tomarFoto(): Promise<string | null> {
     try {
       const foto = await Camera.getPhoto({
-        quality: 30,
+        quality: 10,
         allowEditing: false,
         resultType: CameraResultType.Base64,
         source: CameraSource.Camera,
-        saveToGallery: false
+        saveToGallery: false,
+        width: 512,
+        height: 512
       });
       return foto.base64String || null;
     } catch (err) {
