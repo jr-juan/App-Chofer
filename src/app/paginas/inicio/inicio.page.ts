@@ -14,6 +14,8 @@ import { CamaraService } from "../../servicios/camara.service";
 import { AlmacenamientoService } from "../../servicios/almacenamiento.service";
 import { SincronizarService } from "../../servicios/sincronizar.service";
 import { App } from "@capacitor/app";
+import { Router } from "@angular/router";
+import { RutaMapaService } from "src/app/servicios/ruta-mapa.service";
 
 @Component({
   selector: "app-inicio",
@@ -67,6 +69,8 @@ export class InicioPage implements OnInit, OnDestroy {
     private camaraService: CamaraService,
     private almacenamientoService: AlmacenamientoService,
     private sincronizarService: SincronizarService,
+    private router: Router,
+    private rutaMapaService: RutaMapaService,
   ) {}
 
   // ── RF3 — Ciclo de vida ──
@@ -82,10 +86,10 @@ export class InicioPage implements OnInit, OnDestroy {
     });
 
     // RF14 — Alerta de hito cada 1 km
-   this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
-  if (km !== null && this.recorridoActivo?.id) {
-    // RF29 — No registrar hitos si está suspendido
-    if (this.recorridoActivo.estado === "suspendido") return;
+    this.hitoSub = this.gpsService.hitoAlcanzado$.subscribe((km) => {
+      if (km !== null && this.recorridoActivo?.id) {
+        // RF29 — No registrar hitos si está suspendido
+        if (this.recorridoActivo.estado === "suspendido") return;
         this.mostrarAlerta(
           `¡Hito alcanzado! Llevas ${km} km en la ruta ${this.recorridoActivo.ruta?.nombre_ruta || this.recorridoActivo.rutaId}.`,
           "info",
@@ -116,8 +120,11 @@ export class InicioPage implements OnInit, OnDestroy {
       this.posicionActual = pos;
       this.cdr.detectChanges();
 
-      
-if (pos && this.recorridoActivo?.id && this.recorridoActivo.estado !== "suspendido") {
+      if (
+        pos &&
+        this.recorridoActivo?.id &&
+        this.recorridoActivo.estado !== "suspendido"
+      ) {
         this.apiService
           .guardarPosicionGPS(this.recorridoActivo.id, pos)
           .subscribe({
@@ -152,8 +159,12 @@ if (pos && this.recorridoActivo?.id && this.recorridoActivo.estado !== "suspendi
         if (!this.guardandoEvidencia) {
           this.cargarDatos();
         }
-        
-if (this.recorridoActivo && this.recorridoActivo.estado !== "suspendido" && !this.gpsService.estaActivo) {
+
+        if (
+          this.recorridoActivo &&
+          this.recorridoActivo.estado !== "suspendido" &&
+          !this.gpsService.estaActivo
+        ) {
           await this.gpsService.iniciarSeguimiento();
         }
       }
@@ -175,18 +186,18 @@ if (this.recorridoActivo && this.recorridoActivo.estado !== "suspendido" && !thi
 
   // ── Notificaciones ──
 
-mostrarAlerta(
-  mensaje: string,
-  tipo: "exito" | "error" | "info" | "advertencia" = "info",
-) {
+  mostrarAlerta(
+    mensaje: string,
+    tipo: "exito" | "error" | "info" | "advertencia" = "info",
+  ) {
     this.notificacionMensaje = mensaje;
     this.notificacionTipo = tipo;
     this.mostrarNotificacion = true;
   }
 
   get recorridoSuspendido(): boolean {
-  return this.recorridoActivo?.estado === "suspendido";
-}
+    return this.recorridoActivo?.estado === "suspendido";
+  }
 
   cerrarNotificacion() {
     this.mostrarNotificacion = false;
@@ -218,40 +229,48 @@ mostrarAlerta(
 
         // No sobreescribir recorridoActivo si hay evidencia guardándose
         if (recorrido) {
-  const rec = recorrido as Recorrido & { id: string };
+          const rec = recorrido as Recorrido & { id: string };
 
-  this.apiService.verificarYSuspenderRecorrido(rec).subscribe({
-    next: (fueSuspendido) => {
-      if (fueSuspendido) {
-        rec.estado = "suspendido";
-        this.gpsService.detenerSeguimiento();
-        this.mostrarAlerta(
-          "Tu recorrido ha sido suspendido por superar las 24 horas permitidas. No se enviarán más datos. ",
-          "advertencia",
-        );
-      }
-      this.recorridoActivo = {
-        ...rec,
-        vehiculo: this.vehiculosAsignados.find((v) => v.id === rec.vehiculoId) || null,
-        ruta: this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null,
-      };
-      this.cargando = false;
-      this.cdr.detectChanges();
-    },
-    error: () => {
-      this.recorridoActivo = {
-        ...rec,
-        vehiculo: this.vehiculosAsignados.find((v) => v.id === rec.vehiculoId) || null,
-        ruta: this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null,
-      };
-      this.cargando = false;
-      this.cdr.detectChanges();
-    },
-  });
-} else {
-  this.recorridoActivo = null;
-  this.cargando = false;
-}
+          this.apiService.verificarYSuspenderRecorrido(rec).subscribe({
+            next: (fueSuspendido) => {
+              if (fueSuspendido) {
+                rec.estado = "suspendido";
+                this.gpsService.detenerSeguimiento();
+                this.mostrarAlerta(
+                  "Tu recorrido ha sido suspendido por superar las 24 horas permitidas. No se enviarán más datos. ",
+                  "advertencia",
+                );
+              }
+              this.recorridoActivo = {
+                ...rec,
+                vehiculo:
+                  this.vehiculosAsignados.find(
+                    (v) => v.id === rec.vehiculoId,
+                  ) || null,
+                ruta:
+                  this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null,
+              };
+              this.cargando = false;
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              this.recorridoActivo = {
+                ...rec,
+                vehiculo:
+                  this.vehiculosAsignados.find(
+                    (v) => v.id === rec.vehiculoId,
+                  ) || null,
+                ruta:
+                  this.rutasAsignadas.find((r) => r.id === rec.rutaId) || null,
+              };
+              this.cargando = false;
+              this.cdr.detectChanges();
+            },
+          });
+        } else {
+          this.recorridoActivo = null;
+          this.cargando = false;
+        }
       },
       error: (err) => {
         console.error("Error cargando datos:", err);
@@ -379,24 +398,24 @@ mostrarAlerta(
 
   // Reanudar GPS con recorrido activo
 
- async reanudarGPS() {
-  if (this.recorridoSuspendido) {
-    this.mostrarAlerta(
-      "No puedes reanudar el GPS en un recorrido suspendido.",
-      "advertencia",
-    );
-    return;
+  async reanudarGPS() {
+    if (this.recorridoSuspendido) {
+      this.mostrarAlerta(
+        "No puedes reanudar el GPS en un recorrido suspendido.",
+        "advertencia",
+      );
+      return;
+    }
+    const gpsIniciado = await this.gpsService.iniciarSeguimiento();
+    if (gpsIniciado) {
+      this.mostrarAlerta("GPS reanudado correctamente.", "exito");
+    } else {
+      this.mostrarAlerta(
+        "No se pudo reanudar el GPS. Verifica los permisos.",
+        "error",
+      );
+    }
   }
-  const gpsIniciado = await this.gpsService.iniciarSeguimiento();
-  if (gpsIniciado) {
-    this.mostrarAlerta("GPS reanudado correctamente.", "exito");
-  } else {
-    this.mostrarAlerta(
-      "No se pudo reanudar el GPS. Verifica los permisos.",
-      "error",
-    );
-  }
-}
 
   // ─ RF26 — Finalizar recorrido manualmente + detener GPS ─
 
@@ -417,83 +436,99 @@ mostrarAlerta(
   }
 
   // RF15 — Captura de evidencia fotográfica
- async capturarEvidencia() {
-  if (this.guardandoEvidencia) return;
+  async capturarEvidencia() {
+    if (this.guardandoEvidencia) return;
 
-  // RF29 — Bloquear si está suspendido
-  if (this.recorridoSuspendido) {
-    this.mostrarAlerta(
-      "No puedes capturar evidencia en un recorrido suspendido.",
-      "advertencia",
-    );
+    // RF29 — Bloquear si está suspendido
+    if (this.recorridoSuspendido) {
+      this.mostrarAlerta(
+        "No puedes capturar evidencia en un recorrido suspendido.",
+        "advertencia",
+      );
+      return;
+    }
+
+    const recorridoId = this.recorridoActivo?.id;
+
+    if (!recorridoId) {
+      this.mostrarAlerta(
+        "Debes tener un recorrido activo para capturar evidencia.",
+        "info",
+      );
+      return;
+    }
+
+    this.guardandoEvidencia = true;
+
+    let base64: string | null = null;
+    try {
+      base64 = await this.camaraService.tomarFoto();
+    } catch (err) {
+      console.error("Error cámara:", err);
+      this.mostrarAlerta("Error al abrir la cámara.", "error");
+      this.guardandoEvidencia = false;
+      return;
+    }
+
+    if (!base64) {
+      this.mostrarAlerta("No se pudo capturar la foto.", "error");
+      this.guardandoEvidencia = false;
+      return;
+    }
+
+    const hayConexion = await this.sincronizarService.hayConexion();
+    if (!hayConexion) {
+      await this.almacenamientoService.guardarImagenPendiente(
+        recorridoId,
+        base64,
+      );
+    }
+
+    this.apiService
+      .guardarEvidencia(recorridoId, base64, this.posicionActual)
+      .subscribe({
+        next: () => {
+          this.guardandoEvidencia = false;
+          this.mostrarAlerta("Evidencia guardada correctamente.", "exito");
+        },
+        error: async (err) => {
+          console.error("Error guardando evidencia:", err);
+          this.guardandoEvidencia = false;
+          if (!hayConexion) {
+            this.mostrarAlerta(
+              "Conexión inestable — evidencia guardada localmente. Se sincronizará cuando haya señal.",
+              "info",
+            );
+          } else {
+            await this.almacenamientoService.guardarImagenPendiente(
+              recorridoId,
+              base64!,
+            );
+            this.mostrarAlerta(
+              "Error al guardar evidencia — guardada localmente.",
+              "info",
+            );
+          }
+        },
+      });
+  }
+
+  //  Ver ruta activa en el mapa
+
+verEnMapa(ruta: any) {
+  if (!this.gpsDisponible) {
+    this.mostrarAlerta('Activa el GPS del celular antes de ver la ruta en el mapa.', 'advertencia');
     return;
   }
-
-  const recorridoId = this.recorridoActivo?.id;
-
-  if (!recorridoId) {
-    this.mostrarAlerta(
-      "Debes tener un recorrido activo para capturar evidencia.",
-      "info",
-    );
-    return;
-  }
-
-  this.guardandoEvidencia = true;
-
-  let base64: string | null = null;
-  try {
-    base64 = await this.camaraService.tomarFoto();
-  } catch (err) {
-    console.error("Error cámara:", err);
-    this.mostrarAlerta("Error al abrir la cámara.", "error");
-    this.guardandoEvidencia = false;
-    return;
-  }
-
-  if (!base64) {
-    this.mostrarAlerta("No se pudo capturar la foto.", "error");
-    this.guardandoEvidencia = false;
-    return;
-  }
-
-  const hayConexion = await this.sincronizarService.hayConexion();
-  if (!hayConexion) {
-    await this.almacenamientoService.guardarImagenPendiente(
-      recorridoId,
-      base64,
-    );
-  }
-
-  this.apiService
-    .guardarEvidencia(recorridoId, base64, this.posicionActual)
-    .subscribe({
-      next: () => {
-        this.guardandoEvidencia = false;
-        this.mostrarAlerta("Evidencia guardada correctamente.", "exito");
-      },
-      error: async (err) => {
-        console.error("Error guardando evidencia:", err);
-        this.guardandoEvidencia = false;
-        if (!hayConexion) {
-          this.mostrarAlerta(
-            "Conexión inestable — evidencia guardada localmente. Se sincronizará cuando haya señal.",
-            "info",
-          );
-        } else {
-          await this.almacenamientoService.guardarImagenPendiente(
-            recorridoId,
-            base64!,
-          );
-          this.mostrarAlerta(
-            "Error al guardar evidencia — guardada localmente.",
-            "info",
-          );
-        }
-      },
-    });
+  this.rutaMapaService.setDatos({
+    shape: ruta.shape,
+    nombre: ruta.nombre_ruta,
+    color: ruta.color_hex
+  });
+  this.router.navigate(['/mapa', ruta.id]);
 }
-  // ── Sesión ──
+
+  // ── Sesión ─
 
   cerrarSesion() {
     this.mostrarModalCerrarSesion = false;
