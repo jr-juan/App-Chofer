@@ -242,4 +242,9 @@ export class GpsService {
       this.poleoInterval = null;
     }
   }
+
+
+getPosicionActual(): PosicionGPS | null {
+  return this._posicionActual.getValue();
+}
 }
