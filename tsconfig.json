@@ -1,7 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
-    //"ignoreDeprecations": "6.0",  la comento porque en esta version no existe, asi que no puedo quitar las advertencias.
+   // "ignoreDeprecations": "6.0", 
     "skipLibCheck": true, 
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
@@ -12,7 +12,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "importHelpers": true,
-    "target": "es2015",
+    "target": "es2020",
     "typeRoots": [
       "node_modules/@types"
     ],
