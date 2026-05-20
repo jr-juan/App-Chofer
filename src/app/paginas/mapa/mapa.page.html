@@ -1,0 +1,84 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button fill="clear" (click)="volver()">
+        <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>
+      <span *ngIf="nombreRuta" class="titulo-con-color">
+        <span class="punto-ruta" [style.background]="colorRuta"></span>
+        {{ nombreRuta }}
+      </span>
+      <span *ngIf="!nombreRuta">Mapa de Ruta</span>
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="mapa-content">
+  <div class="mapa-wrapper">
+
+    <!-- Loading -->
+    <div *ngIf="cargando && !errorMapa" class="overlay-estado">
+      <div class="card-estado">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Cargando mapa...</p>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="errorMapa" class="overlay-estado">
+      <div class="card-estado card-error">
+        <ion-icon name="map-outline"></ion-icon>
+        <p>{{ errorMapa }}</p>
+        <button class="btn-confirmar" (click)="volver()">
+          <ion-icon name="arrow-back-outline"></ion-icon> Volver
+        </button>
+      </div>
+    </div>
+
+    <!-- Mapa -->
+    <div #mapContainer class="mapa-contenedor"></div>
+
+    <!-- Panel GPS -->
+    <div
+      class="panel-gps"
+      *ngIf="!cargando && !errorMapa"
+      [class.gps-activo-panel]="posicionActual"
+      [class.gps-sin-panel]="!posicionActual"
+    >
+      <div class="gps-header">
+        <span
+          class="gps-dot"
+          [style.background]="posicionActual ? '#43a047' : '#ffa726'"
+          [style.box-shadow]="posicionActual ? '0 0 6px #43a047' : 'none'"
+          [style.animation]="posicionActual ? 'pulsar 1.5s infinite' : 'none'"
+        ></span>
+        <strong>{{ posicionActual ? 'Posición en tiempo real' : 'Sin recorrido activo' }}</strong>
+      </div>
+
+      <!-- Con recorrido activo -->
+      <div *ngIf="posicionActual" class="gps-coords">
+        <span><ion-icon name="location"></ion-icon> Lat: {{ posicionActual.latitud | number:'1.4-4' }}</span>
+        <span>Lng: {{ posicionActual.longitud | number:'1.4-4' }}</span>
+        <span class="gps-precision"><ion-icon name="radio"></ion-icon> ±{{ posicionActual.precision | number:'1.0-0' }}m</span>
+      </div>
+
+      <!-- Sin recorrido activo -->
+      <div *ngIf="!posicionActual" class="gps-aviso">
+        <ion-icon name="warning"></ion-icon>
+        La posición del vehículo no está disponible.
+      </div>
+    </div>
+
+    <!-- Botón centrar  -->
+    <button
+      class="btn-centrar"
+      *ngIf="posicionActual && !cargando"
+      (click)="centrarEnVehiculo()"
+    >
+      <ion-icon name="locate"></ion-icon>
+    </button>
+
+  </div>
+</ion-content>

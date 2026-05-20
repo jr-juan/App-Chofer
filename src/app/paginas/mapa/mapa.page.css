@@ -1,0 +1,218 @@
+/* ── Toolbar — igual que inicio.page ── */
+ion-toolbar {
+  --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --color: white;
+}
+ion-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: white;
+}
+ion-button {
+  --color: white;
+}
+
+.titulo-con-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.punto-ruta {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+}
+
+/* ── Contenedor del mapa ── */
+
+/* ── Contenedor del mapa ── */
+.mapa-content {
+  --background: #f0f4f8;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  --overflow: hidden;
+  height: 100%;
+}
+
+.mapa-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible; 
+}
+
+.mapa-contenedor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ── Overlays de carga / error ── */
+.overlay-estado {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240, 244, 248, 0.95);
+}
+
+.card-estado {
+  background: white;
+  border-radius: 14px;
+  padding: 32px 28px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-estado ion-icon {
+  font-size: 48px;
+  color: #bdc3c7;
+}
+.card-estado p {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 0.95rem;
+}
+.card-error {
+  border-top: 4px solid #e53935;
+}
+
+.btn-confirmar {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.btn-confirmar ion-icon {
+  font-size: 16px;
+  color: white;
+}
+
+/* ── Panel GPS inferior ── */
+.panel-gps {
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  right: 68px;
+  z-index: 20;
+  background: white;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.gps-activo-panel {
+  border: 1.5px solid #43a047;
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+}
+
+.gps-sin-panel {
+  border: 1.5px solid #ffa726;
+  background: linear-gradient(135deg, #fff8e1, #fff3e0);
+}
+
+.gps-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.gps-header strong {
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+.gps-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.gps-coords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: #388e3c;
+}
+.gps-coords ion-icon {
+  vertical-align: middle;
+  margin-right: 3px;
+  font-size: 13px;
+}
+.gps-precision {
+  color: #757575;
+  font-size: 11px;
+}
+.gps-aviso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #e65100;
+  font-weight: 500;
+}
+
+.gps-aviso ion-icon {
+  font-size: 15px;
+}
+
+/* ── Botón centrar vehículo ── */
+.btn-centrar {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  z-index: 21;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.btn-centrar:active {
+  transform: scale(0.92);
+}
+
+.btn-centrar ion-icon {
+  font-size: 24px;
+}
