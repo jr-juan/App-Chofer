@@ -17,7 +17,7 @@ export class GpsService {
 
   private ultimoEnvio: number = 0;
   private INTERVALO_MS = 15000; // 15 segundos
-  private DISTANCIA_MIN = 30; // 20 metros
+  private DISTANCIA_MIN = 10; // 10 metros
 
   private distanciaAcumulada: number = 0;
   private DISTANCIA_HITO = 1000; // 1 km en metros
